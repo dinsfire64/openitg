@@ -146,7 +146,8 @@ LIBS += -lusb
 
 USBIO = io/USBDriver.cpp io/USBDriver.h io/PIUIO.cpp io/PIUIO.h io/ITGIO.cpp \
 	io/ITGIO.h io/PacDrive.cpp io/PacDrive.h io/G15.cpp io/G15.h \
-	io/USBDevice.h io/MiniMaid.cpp io/MiniMaid.h io/P3IO.cpp io/P3IO.h
+	io/USBDevice.h io/MiniMaid.cpp io/MiniMaid.h io/P3IO.cpp io/P3IO.h \
+	io/PIUIOBTN.cpp io/PIUIOBTN.h io/snek.cpp io/snek.h
 
 DataStructures += $(USBIO)
 USBDriver += arch/USB/USBDriver_Impl_Libusb.cpp arch/USB/USBDriver_Impl_Libusb.h
@@ -201,7 +202,11 @@ InputHandler += arch/InputHandler/InputHandler_PIUIO.h \
 		arch/InputHandler/InputHandler_MiniMaid.h \
 		arch/InputHandler/InputHandler_MiniMaid.cpp \
 		arch/InputHandler/InputHandler_P3IO.h \
-		arch/InputHandler/InputHandler_P3IO.cpp
+		arch/InputHandler/InputHandler_P3IO.cpp \
+		arch/InputHandler/InputHandler_PIUIOBTN.h \
+		arch/InputHandler/InputHandler_PIUIOBTN.cpp \
+		arch/InputHandler/InputHandler_snek.h \
+		arch/InputHandler/InputHandler_snek.cpp
 
 MovieTexture = arch/MovieTexture/MovieTexture.cpp arch/MovieTexture/MovieTexture.h \
 		arch/MovieTexture/MovieTexture_Null.cpp arch/MovieTexture/MovieTexture_Null.h

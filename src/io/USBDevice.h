@@ -9,6 +9,8 @@
 #include "ITGIO.h"
 #include "MiniMaid.h"
 #include "P3IO.h"
+#include "PIUIOBTN.h"
+#include "snek.h"
 
 #include <usb.h>
 #ifdef PRODUCT_ID_BARE
@@ -49,6 +51,8 @@ public:
 	bool IsPIUIO();
 	bool IsMiniMaid();
 	bool IsP3IO();
+	bool IsPIUIOBTN();
+	bool IsSnek();
 
 private:
 	int m_iIdVendor;

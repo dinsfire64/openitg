@@ -48,6 +48,10 @@ Release-SSE2
 *.opensdf
 *.VC.VC.opendb
 *.vdi
+*.xz
+*.rsa
+compile
+test-driver
 
 # Windows build artefacts
 src/verstub.cpp

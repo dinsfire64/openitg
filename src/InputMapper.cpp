@@ -156,6 +156,55 @@ const AutoJoyMapping g_AutoJoyMappings[] =
 	},
 	{
 		"dance",
+		"PIU Button Board",
+		"Button Board",
+		{
+			/* Player 1 */
+			{ 2, JOY_32,	GAME_BUTTON_SELECT,	false },
+			{ 2, JOY_31,	GAME_BUTTON_MENULEFT,	false },
+			{ 2, JOY_30,	GAME_BUTTON_MENURIGHT,	false },
+			{ 2, JOY_29,	GAME_BUTTON_START,	false },
+
+			/* Player 2 */
+			{ 3, JOY_28,	GAME_BUTTON_SELECT,	true },
+			{ 3, JOY_27,	GAME_BUTTON_MENULEFT,	true },
+			{ 3, JOY_26,	GAME_BUTTON_MENURIGHT,	true },
+			{ 3, JOY_25,	GAME_BUTTON_START,	true },
+			END_MARKER
+		}
+	},
+	{
+		"dance",
+		"snek",
+		"ITG snek device",
+		{
+			/* Player 1 */
+			{ 0, JOY_26,	DANCE_BUTTON_LEFT,	false },
+			{ 0, JOY_21,	DANCE_BUTTON_RIGHT,	false },
+			{ 0, JOY_27,	DANCE_BUTTON_UP,	false },
+			{ 0, JOY_24,	DANCE_BUTTON_DOWN,	false },
+			{ 0, JOY_29,	GAME_BUTTON_START,	false },
+			{ 0, JOY_18,	GAME_BUTTON_MENULEFT,	false },
+			{ 0, JOY_20,	GAME_BUTTON_MENURIGHT,	false },
+
+			/* Player 2 */
+			{ 1, JOY_25,	DANCE_BUTTON_LEFT,	true },
+			{ 1, JOY_22,	DANCE_BUTTON_RIGHT,	true },
+			{ 1, JOY_28,	DANCE_BUTTON_UP,	true },
+			{ 1, JOY_23,	DANCE_BUTTON_DOWN,	true },
+			{ 1, JOY_30,	GAME_BUTTON_START,	true },
+			{ 1, JOY_17,	GAME_BUTTON_MENULEFT,	true },
+			{ 1, JOY_19,	GAME_BUTTON_MENURIGHT,	true },
+
+			/* Other controls */
+			{ 0, JOY_31,	GAME_BUTTON_OPERATOR,	false },
+			{ 1, JOY_32,	GAME_BUTTON_OPERATOR,	false },
+			{ 0, JOY_16,	GAME_BUTTON_COIN,	false },
+			END_MARKER
+		}
+	},
+	{
+		"dance",
 		"GIC USB Joystick",
 		"Boom USB convertor (black/gray)",
 		{
@@ -443,13 +492,18 @@ void InputMapper::ApplyMapping( const Mapping *maps, GameController gc, InputDev
 		GameController map_gc = gc;
 		if( maps[k].SecondController )
 		{
-			map_gc = (GameController)(map_gc+1);
+			map_gc = GAME_CONTROLLER_2;
 
 			/* If that pushed it over, then it's a second controller for a joystick
 			 * that's already a second controller, so we'll just ignore it.  (This
 			 * can happen if eg. two primary Pump pads are connected.) */
 			if( map_gc >= GAME_CONTROLLER_INVALID )
+			{
 				continue;
+			}
+		}
+		else {
+			map_gc = GAME_CONTROLLER_1;
 		}
 
 		DeviceInput di( device, maps[k].deviceButton );

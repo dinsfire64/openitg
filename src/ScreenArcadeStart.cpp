@@ -17,6 +17,9 @@
 #include "arch/InputHandler/InputHandler_PIUIO.h"
 #include "arch/InputHandler/InputHandler_MiniMaid.h"
 #include "arch/InputHandler/InputHandler_P3IO.h"
+#include "arch/InputHandler/InputHandler_PIUIOBTN.h"
+#include "arch/InputHandler/InputHandler_snek.h"
+#include "arch/InputHandler/InputHandler_X11.h"
 
 #define NEXT_SCREEN	THEME->GetMetric( m_sName, "NextScreen" )
 
@@ -143,29 +146,30 @@ bool ScreenArcadeStart::CheckForHub()
 bool ScreenArcadeStart::LoadHandler()
 {
 	// this makes it so much easier to keep track of. --Vyhd
-	enum Board { BOARD_NONE, BOARD_ITGIO, BOARD_PIUIO, BOARD_MINIMAID, BOARD_P3IO };
+	enum Board { BOARD_NONE, BOARD_ITGIO, BOARD_PIUIO, BOARD_MINIMAID, BOARD_P3IO, BOARD_SNEK };
 	Board iBoard = BOARD_NONE;
 
+	vector<USBDevice> vDevices;
+	GetUSBDeviceList( vDevices );
+
+	for( unsigned i = 0; i < vDevices.size(); i++ )
 	{
-		vector<USBDevice> vDevices;
-		GetUSBDeviceList( vDevices );
+		if( vDevices[i].IsITGIO() )
+			iBoard = BOARD_ITGIO;
+		else if( vDevices[i].IsPIUIO() )
+			iBoard = BOARD_PIUIO;
+		else if( vDevices[i].IsMiniMaid() )
+			iBoard = BOARD_MINIMAID;
+		else if( vDevices[i].IsP3IO() )
+			iBoard = BOARD_P3IO;
+		else if( vDevices[i].IsSnek() )
+			iBoard = BOARD_SNEK;
 
-		for( unsigned i = 0; i < vDevices.size(); i++ )
-		{
-			if( vDevices[i].IsITGIO() )
-				iBoard = BOARD_ITGIO;
-			else if( vDevices[i].IsPIUIO() )
-				iBoard = BOARD_PIUIO;
-			else if( vDevices[i].IsMiniMaid() )
-				iBoard = BOARD_MINIMAID;
-			else if( vDevices[i].IsP3IO() )
-				iBoard = BOARD_P3IO;
-
-			// early abort if we found something
-			if( iBoard != BOARD_NONE )
-				break;
-		}
+		// early abort if we found something
+		if( iBoard != BOARD_NONE )
+			break;
 	}
+
 
 	USBDriver *pDriver;
 
@@ -175,6 +179,8 @@ bool ScreenArcadeStart::LoadHandler()
 		pDriver = new PIUIO;
 	else if( iBoard == BOARD_MINIMAID )
 		pDriver = new MiniMaid;
+	else if( iBoard == BOARD_SNEK )
+		pDriver = new snek;
 	else
 #ifdef ITG_ARCADE
 	{
@@ -207,8 +213,19 @@ bool ScreenArcadeStart::LoadHandler()
 		INPUTMAN->AddHandler( new InputHandler_PIUIO );
 	else if( iBoard == BOARD_MINIMAID )
 		INPUTMAN->AddHandler( new InputHandler_MiniMaid );
+	else if( iBoard == BOARD_SNEK )
+		INPUTMAN->AddHandler( new InputHandler_snek );
 	else
 		ASSERT(0);
+
+	//check to see if optional device is available.
+	for( unsigned i = 0; i < vDevices.size(); i++ )
+	{
+		if( vDevices[i].IsPIUIOBTN() )
+		{
+			INPUTMAN->AddHandler( new InputHandler_PIUIOBTN );
+		}
+	}
 
 	LOG->Trace( "Remapping joysticks after loading driver." );
 

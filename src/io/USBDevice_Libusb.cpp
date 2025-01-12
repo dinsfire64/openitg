@@ -147,7 +147,7 @@ PSTRING USBDevice::GetClassDescription(unsigned iClass)
 
 PSTRING USBDevice::GetDescription()
 {
-	if( IsITGIO() || IsPIUIO() || IsMiniMaid() || IsP3IO() )
+	if( IsITGIO() || IsPIUIO() || IsMiniMaid() || IsP3IO()  || IsPIUIOBTN() || IsSnek() )
 		return "Input/lights controller";
 
 	std::vector<std::string> sInterfaceDescriptions;

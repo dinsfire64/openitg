@@ -9,6 +9,8 @@
 #define HID_IFACE_IN	256
 #define HID_IFACE_OUT	512
 
+#include <stdint.h>
+
 class USBDriver_Impl;
 
 class USBDriver
