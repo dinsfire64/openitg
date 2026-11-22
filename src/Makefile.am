@@ -192,7 +192,9 @@ endif
 ArchHooks = arch/ArchHooks/ArchHooks.cpp arch/ArchHooks/ArchHooks.h
 
 InputHandler = arch/InputHandler/InputHandler.cpp arch/InputHandler/InputHandler.h \
-		arch/InputHandler/InputHandler_MonkeyKeyboard.cpp arch/InputHandler/InputHandler_MonkeyKeyboard.h
+		arch/InputHandler/InputHandler_MonkeyKeyboard.cpp arch/InputHandler/InputHandler_MonkeyKeyboard.h \
+		arch/InputHandler/InputHandler_PIUIO_Helper.h \
+		arch/InputHandler/InputHandler_PIUIO_Helper.cpp
 
 if DDRMINI
 InputHandler += arch/InputHandler/InputHandler_DDRMini_SDL.cpp \
@@ -204,8 +206,6 @@ endif
 if !DDRMINI
 InputHandler += arch/InputHandler/InputHandler_PIUIO.h \
 		arch/InputHandler/InputHandler_PIUIO.cpp \
-		arch/InputHandler/InputHandler_PIUIO_Helper.h \
-		arch/InputHandler/InputHandler_PIUIO_Helper.cpp \
 		arch/InputHandler/InputHandler_Iow.h \
 		arch/InputHandler/InputHandler_Iow.cpp \
 		arch/InputHandler/InputHandler_MK3.h \

@@ -149,6 +149,7 @@ public:
 		m_Positions.resize( GetTotalVertices() );
 		m_Normals.resize( GetTotalVertices() );
 		m_Texcoords.resize( GetTotalVertices() );
+		m_TexMatrixScales.resize( GetTotalVertices() );
 		m_Triangles.resize( GetTotalTriangles() );
 	}
 
@@ -162,6 +163,7 @@ public:
 				m_Positions[info.iVertexStart+j] = meshes[i].Vertices[j].p;
 				m_Normals[info.iVertexStart+j] = meshes[i].Vertices[j].n;
 				m_Texcoords[info.iVertexStart+j] = meshes[i].Vertices[j].t;
+				m_TexMatrixScales[info.iVertexStart+j] = meshes[i].Vertices[j].TextureMatrixScale;
 			}
 			for( unsigned j=0; j<meshes[i].Triangles.size(); ++j )
 				for( int k=0; k<3; ++k )
@@ -176,17 +178,50 @@ public:
 		const MeshInfo &info = m_vMeshInfo[mesh];
 		glVertexPointer( 3, GL_FLOAT, 0, &m_Positions[0] );
 		glNormalPointer( GL_FLOAT, 0, &m_Normals[0] );
+		bool restoreTextureMatrix = false;
 		if( g_SphereEnvironmentMapping )
 		{
 			GenerateSphereMapTexcoords( &m_Positions[0], &m_Normals[0],
 				m_Positions.size(), m_SphereTexcoords );
 			glTexCoordPointer( 2, GL_FLOAT, 0, &m_SphereTexcoords[0] );
 		}
+		else if( info.bNeedsTextureMatrixScale )
+		{
+			/* GLES 1.1 has no vertex attributes or shaders.  Apply OpenITG's
+			 * per-vertex texture-matrix scale on the CPU, then draw with an
+			 * identity texture matrix so the translation is not applied twice. */
+			GLfloat matrix[16];
+			glGetFloatv( GL_TEXTURE_MATRIX, matrix );
+			m_TransformedTexcoords.resize( m_Texcoords.size() );
+			for( unsigned i = 0; i < m_Texcoords.size(); ++i )
+			{
+				const float u = m_Texcoords[i].x;
+				const float v = m_Texcoords[i].y;
+				const float transformedU = matrix[0]*u + matrix[4]*v + matrix[12];
+				const float transformedV = matrix[1]*u + matrix[5]*v + matrix[13];
+				const float scaleU = m_TexMatrixScales[i].x;
+				const float scaleV = m_TexMatrixScales[i].y;
+				m_TransformedTexcoords[i].x = transformedU*scaleU + u*(1-scaleU);
+				m_TransformedTexcoords[i].y = transformedV*scaleV + v*(1-scaleV);
+			}
+			glTexCoordPointer( 2, GL_FLOAT, 0, &m_TransformedTexcoords[0] );
+			glMatrixMode( GL_TEXTURE );
+			glPushMatrix();
+			glLoadIdentity();
+			glMatrixMode( GL_MODELVIEW );
+			restoreTextureMatrix = true;
+		}
 		else
 			glTexCoordPointer( 2, GL_FLOAT, 0, &m_Texcoords[0] );
 		glDisableClientState( GL_COLOR_ARRAY );
 		glDrawElements( GL_TRIANGLES, info.iTriangleCount*3, GL_UNSIGNED_SHORT,
 			&m_Triangles[info.iTriangleStart] );
+		if( restoreTextureMatrix )
+		{
+			glMatrixMode( GL_TEXTURE );
+			glPopMatrix();
+			glMatrixMode( GL_MODELVIEW );
+		}
 		glEnableClientState( GL_COLOR_ARRAY );
 	}
 
@@ -194,7 +229,9 @@ private:
 	vector<RageVector3> m_Positions;
 	vector<RageVector3> m_Normals;
 	vector<RageVector2> m_Texcoords;
+	vector<RageVector2> m_TexMatrixScales;
 	mutable vector<RageVector2> m_SphereTexcoords;
+	mutable vector<RageVector2> m_TransformedTexcoords;
 	vector<msTriangle> m_Triangles;
 };
 }
