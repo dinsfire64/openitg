@@ -60,6 +60,9 @@ chmod +x "$output_dir/DDRmenu"
 # dependencies.  Bundle the Bullseye ARM64 libraries while continuing to use
 # the firmware's glibc, dynamic loader, pthread, libm, librt, and libdl.
 mkdir -p "$output_dir/lib"
+# Older bootstrap builds bundled these, but the firmware's GLES stack requires
+# its own newer C++ runtime.  Remove stale copies from a reused output folder.
+rm -f "$output_dir/lib/libstdc++.so.6" "$output_dir/lib/libgcc_s.so.1"
 copy_runtime_library()
 {
   library_pattern=$1
@@ -82,12 +85,10 @@ copy_runtime_library()
 }
 
 for library in \
-  libgcc_s.so.1 \
   libjpeg.so.62 \
   liblua5.1.so.0 \
   libpng16.so.16 \
   'libresample.so.*' \
-  libstdc++.so.6 \
   libusb-0.1.so.4 \
   libz.so.1
 do

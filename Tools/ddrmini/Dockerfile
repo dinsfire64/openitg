@@ -28,9 +28,12 @@ RUN dpkg --add-architecture arm64 \
       git \
       libc6-dev-arm64-cross \
       libjpeg-dev:arm64 \
+      libegl-dev:arm64 \
+      libgles-dev:arm64 \
       liblua5.1-0-dev:arm64 \
       libpng-dev:arm64 \
       libresample1-dev:arm64 \
+      libsdl2-dev:arm64 \
       libusb-dev:arm64 \
       make \
       pkg-config \

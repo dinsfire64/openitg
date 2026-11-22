@@ -408,6 +408,9 @@ static void CheckSettings()
 #endif
 
 #include "RageDisplay_Null.h"
+#if defined(DDRMINI)
+#include "RageDisplay_DDRMini.h"
+#endif
 
 
 
@@ -426,8 +429,8 @@ struct VideoCardDefaults
 {
 	{
 		#if defined(DDRMINI)
-		"DDR Mini Null",
-		"null",
+		"DDR Mini GLES",
+		"ddrmini,null",
 		1280,720,
 		32,32,32,
 		2048,
@@ -613,7 +616,7 @@ struct VideoCardDefaults
 static CString GetVideoDriverName()
 {
 #if defined(DDRMINI)
-	return "DDR Mini Null";
+	return "DDR Mini GLES";
 #elif defined(_WINDOWS)
 	return GetPrimaryVideoDriverName();
 #elif defined(_XBOX)
@@ -747,6 +750,17 @@ RageDisplay *CreateDisplay()
 			if( sError == "" )
 				return pRet;
 			error += "Initializing Direct3D...\n" + sError;
+			delete pRet;
+#endif
+		}
+		else if( sRenderer.CompareNoCase("ddrmini")==0 )
+		{
+#if defined(DDRMINI)
+			RageDisplay_DDRMini *pRet = new RageDisplay_DDRMini;
+			CString sError = pRet->Init( params );
+			if( sError == "" )
+				return pRet;
+			error += "Initializing DDR Mini GLES...\n" + sError + "\n";
 			delete pRet;
 #endif
 		}

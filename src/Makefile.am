@@ -16,6 +16,11 @@ AM_CXXFLAGS += -finline-limit=300
 
 AM_CXXFLAGS += $(XCFLAGS) -I$(srcdir)/libtomcrypt/src/headers -I$(srcdir)/libtommath -I$(srcdir)/arch/COM
 
+if DDRMINI
+AM_CXXFLAGS += -I/usr/include/SDL2
+LIBS += -lSDL2 -lGLESv1_CM -lEGL
+endif
+
 if !ITG_ARCADE
 LIBS += -lpthread $(LUA_LIBS)
 else
@@ -410,6 +415,8 @@ RageUtil_WorkerThread.cpp RageUtil_WorkerThread.h
 if !DDRMINI
 Rage += RageDisplay_OGL.cpp RageDisplay_OGL.h \
 	RageDisplay_OGL_Extensions.cpp RageDisplay_OGL_Extensions.h
+else
+Rage += RageDisplay_DDRMini.cpp RageDisplay_DDRMini.h
 endif
 
 Actors = \
