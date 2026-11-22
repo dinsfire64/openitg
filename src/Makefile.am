@@ -189,7 +189,9 @@ ArchHooks = arch/ArchHooks/ArchHooks.cpp arch/ArchHooks/ArchHooks.h
 InputHandler = arch/InputHandler/InputHandler.cpp arch/InputHandler/InputHandler.h \
 		arch/InputHandler/InputHandler_MonkeyKeyboard.cpp arch/InputHandler/InputHandler_MonkeyKeyboard.h
 
-# Add the arcade input drivers
+# Add the legacy arcade input drivers.  Several use x86 port I/O and are not
+# part of the first DDR Mini null-driver bootstrap.
+if !DDRMINI
 InputHandler += arch/InputHandler/InputHandler_PIUIO.h \
 		arch/InputHandler/InputHandler_PIUIO.cpp \
 		arch/InputHandler/InputHandler_PIUIO_Helper.h \
@@ -207,6 +209,7 @@ InputHandler += arch/InputHandler/InputHandler_PIUIO.h \
 		arch/InputHandler/InputHandler_PIUIOBTN.cpp \
 		arch/InputHandler/InputHandler_snek.h \
 		arch/InputHandler/InputHandler_snek.cpp
+endif
 
 MovieTexture = arch/MovieTexture/MovieTexture.cpp arch/MovieTexture/MovieTexture.h \
 		arch/MovieTexture/MovieTexture_Null.cpp arch/MovieTexture/MovieTexture_Null.h
@@ -234,7 +237,10 @@ Lights = arch/Lights/LightsDriver.cpp arch/Lights/LightsDriver.h \
 		arch/Lights/LightsDriver_Satellite.cpp arch/Lights/LightsDriver_Satellite.h
 
 MemoryCard = arch/MemoryCard/MemoryCardDriver.cpp arch/MemoryCard/MemoryCardDriver.h
-LowLevelWindow = arch/LowLevelWindow/LowLevelWindow.cpp arch/LowLevelWindow/LowLevelWindow.h
+LowLevelWindow =
+if !DDRMINI
+LowLevelWindow += arch/LowLevelWindow/LowLevelWindow.cpp arch/LowLevelWindow/LowLevelWindow.h
+endif
 
 ArchUtils =
 
@@ -266,8 +272,10 @@ endif
 if UNIX
 ArchHooks += arch/ArchHooks/ArchHooks_Unix.cpp arch/ArchHooks/ArchHooks_Unix.h
 Threads += arch/Threads/Threads_Pthreads.cpp arch/Threads/Threads_Pthreads.h
+if !DDRMINI
 Lights += arch/Lights/LightsDriver_LinuxWeedTech.cpp arch/Lights/LightsDriver_LinuxWeedTech.h
 Lights += arch/Lights/LightsDriver_LinuxParallel.cpp arch/Lights/LightsDriver_LinuxParallel.h
+endif
 
 ArchUtils +=    archutils/Unix/AssertionHandler.cpp \
 		archutils/Unix/GetSysInfo.cpp archutils/Unix/GetSysInfo.h \
@@ -372,8 +380,7 @@ RageFileDriverCrypt_ITG2.cpp RageFileDriverCrypt_ITG2.h \
 RageFileDriverProbe.cpp RageFileDriverProbe.h
 
 Rage = $(PCRE) $(RageFile) $(RageSoundFileReaders) \
-RageBitmapTexture.cpp RageBitmapTexture.h RageDisplay.cpp RageDisplay.h RageDisplay_OGL.cpp RageDisplay_OGL.h \
-RageDisplay_OGL_Extensions.cpp RageDisplay_OGL_Extensions.h \
+RageBitmapTexture.cpp RageBitmapTexture.h RageDisplay.cpp RageDisplay.h \
 RageDisplay_Null.cpp RageDisplay_Null.h RageException.cpp RageException.h RageInput.cpp RageInput.h \
 RageInputDevice.cpp RageInputDevice.h RageLog.cpp RageLog.h RageMath.cpp RageMath.h \
 RageModelGeometry.cpp RageModelGeometry.h RageSound.cpp RageSound.h RageSoundManager.cpp RageSoundManager.h \
@@ -399,6 +406,11 @@ RageTimer.cpp RageTimer.h RageTypes.h RageUtil.cpp RageUtil.h RageUtil_CharConve
 RageUtil_BackgroundLoader.cpp RageUtil_BackgroundLoader.h RageUtil_FileDB.cpp RageUtil_FileDB.h RageUtil_CircularBuffer.h \
 RageUtil_AutoPtr.h \
 RageUtil_WorkerThread.cpp RageUtil_WorkerThread.h
+
+if !DDRMINI
+Rage += RageDisplay_OGL.cpp RageDisplay_OGL.h \
+	RageDisplay_OGL_Extensions.cpp RageDisplay_OGL_Extensions.h
+endif
 
 Actors = \
 Actor.cpp Actor.h ActorCollision.h ActorFrame.cpp ActorFrame.h \

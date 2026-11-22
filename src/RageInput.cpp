@@ -11,7 +11,11 @@ RageInput::RageInput()
 	LOG->Trace( "RageInput::RageInput()" );
 
 	/* Init optional devices. */
+#if defined(DDRMINI)
+	InputHandler::Create( "MonkeyKeyboard", m_pDevices );
+#else
 	InputHandler::Create( g_sInputDrivers, m_pDevices );
+#endif
 
 	/* If no input devices are loaded, the user won't be able to input anything. */
 	if( m_pDevices.size() == 0 )

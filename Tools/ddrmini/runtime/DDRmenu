@@ -1,0 +1,33 @@
+#!/bin/sh
+
+usb_root=/var/run/media/game
+app_dir="$usb_root/openitg"
+log_dir="$app_dir/Logs"
+launcher_log="$log_dir/ddrmini-launcher.log"
+
+mkdir -p "$log_dir"
+exec >>"$launcher_log" 2>&1
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') starting OpenITG null-driver bootstrap"
+cd "$app_dir" || exit 1
+chmod +x ./openitg
+
+# OpenITG predates Portable.ini.  Its Unix writable overlay is always
+# $HOME/.openitg; the firmware otherwise supplies HOME=/, which points it at
+# the read-only root filesystem.  Store preferences and cache on the USB drive.
+export HOME="$app_dir"
+mkdir -p "$HOME/.openitg"
+
+export LD_LIBRARY_PATH="$app_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+echo "HOME=$HOME"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+./openitg
+status=$?
+echo "$(date '+%Y-%m-%d %H:%M:%S') OpenITG exited with status $status"
+
+# The firmware treats successful launcher exits as control requests.  Keep a
+# normal application exit from accidentally requesting a reboot or shutdown.
+if [ "$status" -eq 0 ] || [ "$status" -eq 42 ]; then
+  exit 1
+fi
+exit "$status"

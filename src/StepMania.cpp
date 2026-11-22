@@ -30,7 +30,7 @@
 #include "RageSurface_Load.h"
 #include "CatalogXml.h"
 
-#if !defined(SUPPORT_OPENGL) && !defined(SUPPORT_D3D)
+#if !defined(DDRMINI) && !defined(SUPPORT_OPENGL) && !defined(SUPPORT_D3D)
 #define SUPPORT_OPENGL
 #endif
 
@@ -425,12 +425,21 @@ struct VideoCardDefaults
 } const g_VideoCardDefaults[] = 
 {
 	{
+		#if defined(DDRMINI)
+		"DDR Mini Null",
+		"null",
+		1280,720,
+		32,32,32,
+		2048,
+		true
+		#else
 		"Xbox",
 		"d3d,opengl",
 		600,400,
 		32,32,32,
 		2048,
 		true
+		#endif
 	},
 	{
 		"Voodoo *5",
@@ -603,7 +612,9 @@ struct VideoCardDefaults
 
 static CString GetVideoDriverName()
 {
-#if defined(_WINDOWS)
+#if defined(DDRMINI)
+	return "DDR Mini Null";
+#elif defined(_WINDOWS)
 	return GetPrimaryVideoDriverName();
 #elif defined(_XBOX)
 	return "Xbox";

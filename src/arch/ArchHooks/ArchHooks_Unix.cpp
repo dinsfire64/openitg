@@ -11,11 +11,12 @@
 #include "archutils/Unix/EmergencyShutdown.h"
 #include "archutils/Unix/AssertionHandler.h"
 
+#if !defined(DDRMINI)
 #include <sys/io.h>
+#endif
 #include <sys/time.h>
 #include <sys/reboot.h>
 #include <sys/resource.h>
-#include <sys/io.h>
 #include <unistd.h>
 #include <cerrno>
 #include <mntent.h>
@@ -179,16 +180,25 @@ bool ArchHooks_Unix::OpenMemoryRange( unsigned short start_port, unsigned short 
 {
 	LOG->Trace( "ArchHooks_Unix::OpenMemoryRange( %#x, %d )", start_port, bytes );
 
+#if defined(DDRMINI)
+	LOG->Warn( "OpenMemoryRange is unavailable on the DDR Mini ARM64 target" );
+	return false;
+#else
 	int ret = iopl(3);
 
 	if( ret != 0 )
 		LOG->Warn( "OpenMemoryRange(): iopl error: %s", strerror(errno) );
 
 	return (ret == 0);
+#endif
 }
 
 void ArchHooks_Unix::CloseMemoryRange( unsigned short start_port, unsigned short bytes )
 {
+#if defined(DDRMINI)
+	(void) start_port;
+	(void) bytes;
+#else
 	if( (start_port+bytes) <= 0x3FF )
 	{
 		if( ioperm( start_port, bytes, 0 ) != 0 )
@@ -199,6 +209,7 @@ void ArchHooks_Unix::CloseMemoryRange( unsigned short start_port, unsigned short
 
 	if( iopl(0) != 0 )
 		LOG->Warn( "CloseMemoryRange(): iopl error: %s", strerror(errno) );
+#endif
 }
 
 bool ArchHooks_Unix::GetNetworkAddress( CString &sIP, CString &sNetmask, CString &sError )

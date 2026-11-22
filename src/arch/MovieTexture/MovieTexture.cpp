@@ -23,7 +23,12 @@ RageMovieTexture *RageMovieTexture::Create( RageTextureID ID )
 {
 	DumpAVIDebugInfo( ID.filename );
 
-	CString drivers = g_sMovieDrivers;
+	CString drivers =
+#if defined(DDRMINI)
+		"Null";
+#else
+		g_sMovieDrivers;
+#endif
 	if( drivers.empty() )	
 		drivers = DEFAULT_MOVIE_DRIVER_LIST;
 

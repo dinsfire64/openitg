@@ -20,6 +20,14 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_RANLIB
 
+AC_ARG_ENABLE(ddrmini,
+	AC_HELP_STRING([--enable-ddrmini], [Build the ARM64 DDR Mini null-driver bootstrap]),
+	ddrmini=$enableval, ddrmini=no)
+if test "$ddrmini" = "yes"; then
+	AC_DEFINE(DDRMINI, 1, [Build for the DDR Mini ARM64 target])
+fi
+AM_CONDITIONAL(DDRMINI, test "$ddrmini" = "yes")
+
 test "$DEFAULT_CFLAGS" = "yes" && CFLAGS="-Wall -W -Wno-unused -Wno-switch"
 test "$DEFAULT_CXXFLAGS" = "yes" && CXXFLAGS="-Wall -W -Wno-unused -Wno-switch"
 test "$DEFAULT_LDFLAGS" = "yes" && LDFLAGS=""
@@ -98,7 +106,16 @@ if test "$with_prof" = "yes"; then
 	test "$DEFAULT_LDFLAGS" = "yes" && LDFLAGS="$LDFLAGS -pg"
 fi
 
-SM_X_WITH_OPENGL
+if test "$ddrmini" = "yes"; then
+	no_x=yes
+	XCFLAGS=
+	XLIBS=
+	AC_SUBST(XCFLAGS)
+	AC_SUBST(XLIBS)
+	AM_CONDITIONAL(HAVE_X11, false)
+else
+	SM_X_WITH_OPENGL
+fi
 
 AC_ARG_ENABLE(sdl, AC_HELP_STRING([--enable-sdl], [Enable SDL support]), enable_sdl=$enableval, enable_sdl=no)
 if test "$enable_sdl" = "yes"; then
@@ -203,9 +220,12 @@ fi
 
 AM_CONDITIONAL(HAVE_LIBRESAMPLE, test "$have_libresample" = "yes")
 
-# test if processor supports SSE2
+# Test if an x86 processor supports SSE2.  The test program cannot be built or
+# executed for the DDR Mini AArch64 cross target.
 have_sse2=no
-AC_TRY_RUN([int main() { int a,d; asm ("cpuid":"=a"(a),"=d"(d):"0"(1)); return d & (1 << 26) ? 0 : 1; }], have_sse2=yes, have_sse2=no)
+if test "$ddrmini" != "yes"; then
+	AC_TRY_RUN([int main() { int a,d; asm ("cpuid":"=a"(a),"=d"(d):"0"(1)); return d & (1 << 26) ? 0 : 1; }], have_sse2=yes, have_sse2=no)
+fi
 
 # Don't use SSE2 by default; some GCC versions misoptimise the code, which
 # causes Heisenbugs, and we don't want to inflict that pain unnecessarily.
@@ -219,19 +239,26 @@ fi
 
 SM_CHECK_CRASH_HANDLER
 
-alsa=yes
-AM_PATH_ALSA(0.9.0,AC_DEFINE([HAVE_ALSA],1,[Define presence of ALSA]),alsa=no)
+alsa=no
+if test "$ddrmini" != "yes"; then
+	alsa=yes
+	AM_PATH_ALSA(0.9.0,AC_DEFINE([HAVE_ALSA],1,[Define presence of ALSA]),alsa=no)
+fi
 
 AM_ICONV
 
 AC_ARG_ENABLE(gtk2, AC_HELP_STRING([--disable-gtk2], [Disable GTK support]), enable_gtk2=$enableval, enable_gtk2=yes)
 
-if test x$enable_gtk2 = xyes; then
+if test "$ddrmini" = "yes"; then
+  enable_gtk2=no
+elif test x$enable_gtk2 = xyes; then
   AM_PATH_GTK_2_0(2.0.0,AC_DEFINE([HAVE_GTK],1,[Define presence of GTK]),enable_gtk2=no)
 fi
 
-AC_CHECK_HEADER(sys/soundcard.h, [AC_DEFINE(HAVE_OSS, 1, [OSS support available])])
-AC_CHECK_DECL(OSS_GETVERSION, AC_DEFINE([HAVE_OSS_GETVERSION],1,[OSS_GETVERSION is defined]), , [#include <sys/soundcard.h>])
+if test "$ddrmini" != "yes"; then
+	AC_CHECK_HEADER(sys/soundcard.h, [AC_DEFINE(HAVE_OSS, 1, [OSS support available])])
+	AC_CHECK_DECL(OSS_GETVERSION, AC_DEFINE([HAVE_OSS_GETVERSION],1,[OSS_GETVERSION is defined]), , [#include <sys/soundcard.h>])
+fi
 AC_ARG_ENABLE(force-oss, AC_HELP_STRING([--enable-force-oss], [Force OSS]), force_oss=$enableval, force_oss=no)
 AC_CHECK_HEADER(stdint.h, , [AC_DEFINE(MISSING_STDINT_H, 1, [stdint.h is missing])])
 AC_CHECK_HEADERS([inttypes.h endian.h])
@@ -344,6 +371,7 @@ echo "OpenITG $build_version (revision $build_rev_tag, $build_rev_date)"
 echo
 
 echo "Arcade build		$itg_arcade"
+echo "DDR Mini bootstrap	$ddrmini"
 echo "SSE2 optimizations	$with_sse2 (supported: $have_sse2)"
 echo "SDL			$enable_sdl"
 echo "FFMPEG			$have_ffmpeg ($ffmpeg_option)"

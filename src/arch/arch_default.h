@@ -2,7 +2,14 @@
 #define ARCH_DEFAULT_H
 
 /* Define the default driver sets. */
-#if defined(WINDOWS)
+#if defined(DDRMINI)
+	#include "ArchHooks/ArchHooks_Unix.h"
+	#include "USB/USBDriver_Impl_Libusb.h"
+	#define DEFAULT_INPUT_DRIVER_LIST "MonkeyKeyboard"
+	#define DEFAULT_MOVIE_DRIVER_LIST "Null"
+	#define DEFAULT_SOUND_DRIVER_LIST "Null"
+
+#elif defined(WINDOWS)
 	#include "ArchHooks/ArchHooks_Win32.h"
 	#include "LoadingWindow/LoadingWindow_Win32.h"
 	#include "LowLevelWindow/LowLevelWindow_Win32.h"

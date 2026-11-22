@@ -31,7 +31,10 @@ const float UPDATE_TIME = 1.0f;
 
 REGISTER_SCREEN_CLASS( ScreenArcadeStart );
 
-ScreenArcadeStart::ScreenArcadeStart( CString sClassName ) : ScreenWithMenuElements( sClassName )
+ScreenArcadeStart::ScreenArcadeStart( CString sClassName ) :
+	ScreenWithMenuElements( sClassName ),
+	m_bHandlerLoaded( false ),
+	m_bHubConnected( false )
 {
 	LOG->Trace( "ScreenArcadeStart::ScreenArcadeStart()" );
 }
@@ -124,6 +127,9 @@ void ScreenArcadeStart::DrawPrimitives()
 
 bool ScreenArcadeStart::CheckForHub()
 {
+#if defined(DDRMINI)
+	return true;
+#else
 	/* make sure we never add the tween time into the timeout text. */
 	float fTimer = m_fTimeout;
 	CLAMP( fTimer, 0.0f, TIMEOUT);
@@ -141,10 +147,16 @@ bool ScreenArcadeStart::CheckForHub()
 	}
 
 	return true;
+#endif
 }
 
 bool ScreenArcadeStart::LoadHandler()
 {
+#if defined(DDRMINI)
+	LOG->Info( "ScreenArcadeStart: skipping legacy I/O board probe for DDR Mini bootstrap" );
+	DiagnosticsUtil::SetInputType( "DDR Mini Bootstrap" );
+	return true;
+#else
 	// this makes it so much easier to keep track of. --Vyhd
 	enum Board { BOARD_NONE, BOARD_ITGIO, BOARD_PIUIO, BOARD_MINIMAID, BOARD_P3IO, BOARD_SNEK };
 	Board iBoard = BOARD_NONE;
@@ -233,6 +245,7 @@ bool ScreenArcadeStart::LoadHandler()
 	INPUTMAPPER->SaveMappingsToDisk();
 
 	return true;
+#endif
 }
 
 /*

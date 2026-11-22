@@ -30,6 +30,9 @@ src/verinfo.h
 src/libresample/tests/testresample
 run
 build/artifacts/
+Build/ddrmini-*/
+references/ddrmini-*
+*ddrmini.diff
 
 # Visual Studio build artefacts
 *.obj
