@@ -5,6 +5,8 @@
 #if defined(DDRMINI)
 	#include "ArchHooks/ArchHooks_Unix.h"
 	#include "USB/USBDriver_Impl_Libusb.h"
+	/* SDL handles the keyboard and the evdev-backed HID pads.  This is the
+	 * equivalent of the newer port's DDRMiniSDL plus LinuxEvent combination. */
 	#define DEFAULT_INPUT_DRIVER_LIST "DDRMiniSDL"
 	#define DEFAULT_MOVIE_DRIVER_LIST "FFMpeg,Null"
 	#define DEFAULT_SOUND_DRIVER_LIST "ALSA-sw,ALSA,Null"

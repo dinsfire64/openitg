@@ -206,7 +206,7 @@ void ScreenMapControllers::Input( const DeviceInput& DeviceI, const InputEventTy
 	if( m_iWaitingForPress )
 	{
 		/* Don't allow function keys to be mapped. */
-		if ( DeviceI.device == DEVICE_KEYBOARD && (DeviceI.button >= KEY_F1 && DeviceI.button <= KEY_F12) )
+		if ( false )
 		{
 			m_textError.SetText( "That key can not be mapped." );
 			SCREENMAN->PlayInvalidSound();

@@ -1,6 +1,7 @@
 #include "global.h"
 #include "RageInput.h"
 #include "arch/InputHandler/InputHandler.h"
+#include "arch/arch_default.h"
 
 RageInput*		INPUTMAN	= NULL;		// globally accessable input device
 
@@ -12,9 +13,9 @@ RageInput::RageInput()
 
 	/* Init optional devices. */
 #if defined(DDRMINI)
-	/* Do not let a desktop InputDrivers preference disable the only usable
-	 * keyboard backend on this target. */
-	InputHandler::Create( "DDRMiniSDL", m_pDevices );
+	/* Do not let a desktop InputDrivers preference disable the DDR Mini's
+	 * combined SDL keyboard and HID pad backend. */
+	InputHandler::Create( DEFAULT_INPUT_DRIVER_LIST, m_pDevices );
 #else
 	InputHandler::Create( g_sInputDrivers, m_pDevices );
 #endif

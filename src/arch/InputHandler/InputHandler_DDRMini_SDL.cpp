@@ -80,10 +80,128 @@ RageKeySym SDLScancodeToKey( SDL_Scancode key )
 InputHandler_DDRMini_SDL::InputHandler_DDRMini_SDL()
 {
 	m_KeyDown.resize( SDL_NUM_SCANCODES, 0 );
-	if( SDL_InitSubSystem(SDL_INIT_EVENTS) != 0 )
+	m_Joysticks.resize( NUM_JOYSTICKS );
+	if( SDL_InitSubSystem(SDL_INIT_EVENTS | SDL_INIT_JOYSTICK) != 0 )
 		LOG->Warn( "DDR Mini SDL event initialization failed: %s", SDL_GetError() );
 	else
-		LOG->Info( "DDR Mini SDL keyboard input initialized" );
+	{
+		SDL_JoystickEventState( SDL_ENABLE );
+		LOG->Info( "DDR Mini SDL keyboard and HID pad input initialized" );
+		const int count = SDL_NumJoysticks();
+		LOG->Info( "DDR Mini SDL found %d joystick device(s)", count );
+		for( int i=0; i<count; ++i )
+			AddJoystick( i );
+	}
+}
+
+InputHandler_DDRMini_SDL::~InputHandler_DDRMini_SDL()
+{
+	for( unsigned i=0; i<m_Joysticks.size(); ++i )
+		if( m_Joysticks[i].joystick != NULL )
+			SDL_JoystickClose( m_Joysticks[i].joystick );
+}
+
+int InputHandler_DDRMini_SDL::FindJoystick( SDL_JoystickID instance ) const
+{
+	for( unsigned i=0; i<m_Joysticks.size(); ++i )
+		if( m_Joysticks[i].joystick != NULL && m_Joysticks[i].instance == instance )
+			return i;
+	return -1;
+}
+
+void InputHandler_DDRMini_SDL::AddJoystick( int deviceIndex )
+{
+	SDL_JoystickID instance = SDL_JoystickGetDeviceInstanceID( deviceIndex );
+	if( instance < 0 || FindJoystick(instance) >= 0 )
+		return;
+
+	int slot = -1;
+	for( unsigned i=0; i<m_Joysticks.size(); ++i )
+		if( m_Joysticks[i].joystick == NULL )
+		{
+			slot = i;
+			break;
+		}
+	if( slot < 0 )
+	{
+		LOG->Warn( "DDR Mini SDL has no free joystick slot for device %d", deviceIndex );
+		return;
+	}
+
+	SDL_Joystick *joystick = SDL_JoystickOpen( deviceIndex );
+	if( joystick == NULL )
+	{
+		LOG->Warn( "DDR Mini SDL could not open joystick %d: %s", deviceIndex, SDL_GetError() );
+		return;
+	}
+
+	JoystickState &state = m_Joysticks[slot];
+	state.joystick = joystick;
+	state.instance = SDL_JoystickInstanceID( joystick );
+	const char *name = SDL_JoystickName( joystick );
+	state.name = name != NULL ? name : "Unknown DDR Mini HID pad";
+	std::fill( state.down.begin(), state.down.end(), 0 );
+	LOG->Info( "DDR Mini SDL joystick %d: '%s' (%d axes, %d hats, %d buttons)",
+		slot+1, state.name.c_str(), SDL_JoystickNumAxes(joystick),
+		SDL_JoystickNumHats(joystick), SDL_JoystickNumButtons(joystick) );
+}
+
+void InputHandler_DDRMini_SDL::RemoveJoystick( SDL_JoystickID instance )
+{
+	const int slot = FindJoystick( instance );
+	if( slot < 0 )
+		return;
+	JoystickState &state = m_Joysticks[slot];
+	for( int button=0; button<NUM_JOYSTICK_BUTTONS; ++button )
+		if( state.down[button] )
+			SendJoystickButton( slot, DeviceButton(button), false );
+	LOG->Info( "DDR Mini SDL joystick %d removed: '%s'", slot+1, state.name.c_str() );
+	SDL_JoystickClose( state.joystick );
+	state.joystick = NULL;
+	state.instance = -1;
+	state.name = "";
+}
+
+void InputHandler_DDRMini_SDL::SendJoystickButton( int slot, DeviceButton button, bool down )
+{
+	if( slot < 0 || slot >= (int)m_Joysticks.size() ||
+		button < 0 || button >= NUM_JOYSTICK_BUTTONS )
+		return;
+	JoystickState &state = m_Joysticks[slot];
+	if( state.down[button] == (down ? 1 : 0) )
+		return;
+	state.down[button] = down ? 1 : 0;
+	DeviceInput input( InputDevice(DEVICE_JOY1 + slot), button );
+	input.ts.SetZero();
+	ButtonPressed( input, down );
+}
+
+void InputHandler_DDRMini_SDL::ReconcileJoystick( int slot )
+{
+	JoystickState &state = m_Joysticks[slot];
+	if( state.joystick == NULL )
+		return;
+
+	const int buttons = std::min( SDL_JoystickNumButtons(state.joystick), 32 );
+	for( int i=0; i<buttons; ++i )
+		SendJoystickButton( slot, DeviceButton(JOY_1+i),
+			SDL_JoystickGetButton(state.joystick, i) != 0 );
+
+	const int axes = std::min( SDL_JoystickNumAxes(state.joystick), 8 );
+	for( int i=0; i<axes; ++i )
+	{
+		const Sint16 value = SDL_JoystickGetAxis( state.joystick, i );
+		SendJoystickButton( slot, DeviceButton(JOY_LEFT+2*i), value < -16000 );
+		SendJoystickButton( slot, DeviceButton(JOY_RIGHT+2*i), value > 16000 );
+	}
+
+	Uint8 hats = 0;
+	for( int i=0; i<SDL_JoystickNumHats(state.joystick); ++i )
+		hats |= SDL_JoystickGetHat( state.joystick, i );
+	SendJoystickButton( slot, JOY_HAT_LEFT,  (hats & SDL_HAT_LEFT) != 0 );
+	SendJoystickButton( slot, JOY_HAT_RIGHT, (hats & SDL_HAT_RIGHT) != 0 );
+	SendJoystickButton( slot, JOY_HAT_UP,    (hats & SDL_HAT_UP) != 0 );
+	SendJoystickButton( slot, JOY_HAT_DOWN,  (hats & SDL_HAT_DOWN) != 0 );
 }
 
 void InputHandler_DDRMini_SDL::SendKey( int scancode, bool down )
@@ -108,6 +226,16 @@ void InputHandler_DDRMini_SDL::Update( float fDeltaTime )
 	SDL_Event event;
 	while( SDL_PollEvent(&event) )
 	{
+		if( event.type == SDL_JOYDEVICEADDED )
+		{
+			AddJoystick( event.jdevice.which );
+			continue;
+		}
+		if( event.type == SDL_JOYDEVICEREMOVED )
+		{
+			RemoveJoystick( event.jdevice.which );
+			continue;
+		}
 		if( event.type == SDL_WINDOWEVENT &&
 			event.window.event == SDL_WINDOWEVENT_FOCUS_LOST )
 		{
@@ -133,6 +261,10 @@ void InputHandler_DDRMini_SDL::Update( float fDeltaTime )
 		if( m_KeyDown[i] != (state[i] ? 1 : 0) )
 			SendKey( i, state[i] != 0 );
 
+	SDL_JoystickUpdate();
+	for( unsigned i=0; i<m_Joysticks.size(); ++i )
+		ReconcileJoystick( i );
+
 	InputHandler::UpdateTimer();
 }
 
@@ -141,4 +273,11 @@ void InputHandler_DDRMini_SDL::GetDevicesAndDescriptions(
 {
 	devices.push_back( InputDevice(DEVICE_KEYBOARD) );
 	descriptions.push_back( "DDR Mini SDL Keyboard" );
+	for( unsigned i=0; i<m_Joysticks.size(); ++i )
+	{
+		if( m_Joysticks[i].joystick == NULL )
+			continue;
+		devices.push_back( InputDevice(DEVICE_JOY1+i) );
+		descriptions.push_back( m_Joysticks[i].name );
+	}
 }

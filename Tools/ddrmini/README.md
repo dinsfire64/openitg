@@ -36,11 +36,13 @@ This binary defaults to:
 
 - 1280x720 fullscreen SDL2/OpenGL ES 1.1, with null fallback
 - ALSA software-mixed sound, with ALSA and null fallbacks
-- null movie playback
-- SDL2 USB keyboard input through OpenITG's normal keyboard mappings
+- statically linked FFmpeg playback for MPEG-1, MPEG-2 and MJPEG backgrounds
+- SDL2 USB keyboard input plus SDL2/evdev HID pad input
 
-It is still a bring-up artifact.  Movie playback and cabinet-pad input remain
-disabled while the SDL keyboard and device ALSA paths are validated on hardware.
+The newer DDR Mini port uses separate SDL keyboard, Linux event and Linux
+joystick handlers.  OpenITG lacks its Linux event handler, so the target SDL2
+handler supplies the equivalent capability and opens the pads through evdev;
+`/dev/input/js*` nodes are not required.
 
 The DDR Mini lights driver controls the twelve cabinet sysfs LEDs and sends
 five-byte reports to each `33dd:0014` pad's correlated hidraw output.  It falls
