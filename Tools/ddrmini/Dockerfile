@@ -27,6 +27,7 @@ RUN dpkg --add-architecture arm64 \
       gettext \
       git \
       libc6-dev-arm64-cross \
+      libasound2-dev:arm64 \
       libjpeg-dev:arm64 \
       libegl-dev:arm64 \
       libgles-dev:arm64 \
@@ -35,6 +36,7 @@ RUN dpkg --add-architecture arm64 \
       libresample1-dev:arm64 \
       libsdl2-dev:arm64 \
       libusb-dev:arm64 \
+      libvorbis-dev:arm64 \
       make \
       pkg-config \
       zlib1g-dev:arm64 \

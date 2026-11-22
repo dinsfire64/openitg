@@ -46,11 +46,13 @@ cp "$config_aux_dir/config.guess" autoconf/config.guess
   --disable-gtk2 \
   --without-ffmpeg \
   --without-mp3 \
-  --without-vorbis \
   --without-sse2
 
 make -j"$jobs"
 
+# Retain the full-symbol binary beside the deployable artifact.  It is used
+# with addr2line/gdb on the build host and does not need to be copied to USB.
+cp src/openitg "$output_dir/openitg.debug"
 cp src/openitg "$output_dir/openitg"
 cp "$source_dir/Tools/ddrmini/runtime/DDRmenu" "$output_dir/DDRmenu"
 chmod +x "$output_dir/DDRmenu"
@@ -87,9 +89,12 @@ copy_runtime_library()
 for library in \
   libjpeg.so.62 \
   liblua5.1.so.0 \
+  libogg.so.0 \
   libpng16.so.16 \
   'libresample.so.*' \
   libusb-0.1.so.4 \
+  libvorbis.so.0 \
+  libvorbisfile.so.3 \
   libz.so.1
 do
   copy_runtime_library "$library"

@@ -194,6 +194,11 @@ ArchHooks = arch/ArchHooks/ArchHooks.cpp arch/ArchHooks/ArchHooks.h
 InputHandler = arch/InputHandler/InputHandler.cpp arch/InputHandler/InputHandler.h \
 		arch/InputHandler/InputHandler_MonkeyKeyboard.cpp arch/InputHandler/InputHandler_MonkeyKeyboard.h
 
+if DDRMINI
+InputHandler += arch/InputHandler/InputHandler_DDRMini_SDL.cpp \
+	arch/InputHandler/InputHandler_DDRMini_SDL.h
+endif
+
 # Add the legacy arcade input drivers.  Several use x86 port I/O and are not
 # part of the first DDR Mini null-driver bootstrap.
 if !DDRMINI

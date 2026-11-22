@@ -56,6 +56,11 @@ AC_DEFUN([SM_CHECK_CRASH_HANDLER],
 	    AC_DEFINE([BACKTRACE_METHOD_TEXT],["x86 custom backtrace"],[Define backtrace type])
 	    have_backtrace=yes
 	    ;;
+	aarch64-*-linux* )
+	    AC_DEFINE([BACKTRACE_METHOD_EXECINFO],[1],[Use libc execinfo backtrace])
+	    AC_DEFINE([BACKTRACE_METHOD_TEXT],["execinfo"],[Define backtrace type])
+	    have_backtrace=yes
+	    ;;
     esac
 
     # Do we have a libdl with dladdr?

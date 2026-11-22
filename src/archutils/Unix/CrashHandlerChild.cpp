@@ -272,6 +272,16 @@ static void child_process()
 
 #ifdef ITG_ARCADE	
 	sCrashInfoPath = ssprintf( "/stats/crashinfo-%ld.txt" , seconds ); // Timestamped!
+#elif defined(DDRMINI)
+	/* The DDR Mini has no valid RTC during early boot, so timestamps repeat
+	 * across power cycles.  Never overwrite an earlier report on the USB. */
+	for( int suffix = 0; suffix < 10000; ++suffix )
+	{
+		sCrashInfoPath = ssprintf( "Logs/crashinfo-%ld-%04d.txt", seconds, suffix );
+		struct stat existing;
+		if( stat(sCrashInfoPath, &existing) != 0 )
+			break;
+	}
 #else
 	sCrashInfoPath = ssprintf( "Data/crashinfo-%ld.txt" , seconds );
 #endif

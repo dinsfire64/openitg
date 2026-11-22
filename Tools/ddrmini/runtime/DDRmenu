@@ -7,6 +7,7 @@ executable="$app_dir/openitg"
 log_dir="$app_dir/Logs"
 launcher_log="$log_dir/ddrmini-launcher.log"
 audio_log="$log_dir/ddrmini-audio.log"
+tmp_dir="$log_dir/tmp"
 monitor_pid=
 app_pid=
 power_gpio=gpio-384
@@ -80,7 +81,7 @@ power_switch_state()
     awk 'NR == 1 { print $7 }'
 }
 
-mkdir -p "$log_dir"
+mkdir -p "$log_dir" "$tmp_dir"
 if [ ! -f "$executable" ]; then
   echo "OpenITG executable not found: $executable" >>"$launcher_log"
   exit 1
@@ -91,7 +92,16 @@ cd "$app_dir" || exit 1
 
 # OpenITG predates Portable.ini.  Its Unix writable overlay is $HOME/.openitg.
 export HOME="$app_dir"
+export TMPDIR="$tmp_dir"
+export TMP="$tmp_dir"
+export TEMP="$tmp_dir"
 mkdir -p "$HOME/.openitg"
+
+# Keep a kernel-generated core on the USB as a fallback if OpenITG's own crash
+# handler cannot run.  A relative kernel core_pattern is created in app_dir;
+# an absolute or piped pattern is controlled by the firmware and is recorded
+# below so it can be diagnosed from the launcher log.
+ulimit -c unlimited 2>/dev/null || true
 
 if [ -d "$app_dir/lib" ]; then
   export LD_LIBRARY_PATH="$app_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
@@ -102,7 +112,11 @@ monitor_pid=$!
 
 echo "[$(date)] Starting $executable" >>"$launcher_log"
 echo "HOME=$HOME" >>"$launcher_log"
+echo "TMPDIR=$TMPDIR" >>"$launcher_log"
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >>"$launcher_log"
+if [ -r /proc/sys/kernel/core_pattern ]; then
+  echo "core_pattern=$(cat /proc/sys/kernel/core_pattern)" >>"$launcher_log"
+fi
 "$executable" >>"$launcher_log" 2>&1 &
 app_pid=$!
 power_requested=0

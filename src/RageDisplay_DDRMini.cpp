@@ -64,6 +64,9 @@ RageSurface *ConvertUploadSurface( RageSurface *source, RageDisplay::RagePixelFo
 
 void SetupVertices( const RageSpriteVertex *vertices, int count )
 {
+	if( vertices == NULL || count <= 0 )
+		return;
+
 	static vector<float> positions;
 	static vector<float> normals;
 	static vector<float> texcoords;
@@ -256,6 +259,9 @@ void RageDisplay_DDRMini::SendMatrices()
 
 void RageDisplay_DDRMini::Draw( const RageSpriteVertex vertices[], int count, unsigned mode )
 {
+	if( vertices == NULL || count <= 0 )
+		return;
+
 	SendMatrices();
 	SetupVertices( vertices, count );
 	glDrawArrays( mode, 0, count );
@@ -404,8 +410,24 @@ void RageDisplay_DDRMini::SetCullMode( CullMode mode )
 void RageDisplay_DDRMini::SetAlphaTest( bool enabled ) { if(enabled){glEnable(GL_ALPHA_TEST);glAlphaFunc(GL_GREATER,0.01f);}else glDisable(GL_ALPHA_TEST); }
 void RageDisplay_DDRMini::SetMaterial( const RageColor &e,const RageColor &a,const RageColor &d,const RageColor &s,float sh )
 {
-	glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,e); glMaterialfv(GL_FRONT_AND_BACK,GL_AMBIENT,a);
-	glMaterialfv(GL_FRONT_AND_BACK,GL_DIFFUSE,d); glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,s); glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,sh);
+	/* Match the established OpenGL backend.  Calling the material entry points
+	 * while lighting is disabled is unnecessary, and the DDR Mini's Mali GLES
+	 * implementation crashes in that path when gameplay models are drawn. */
+	GLboolean lighting = GL_FALSE;
+	glGetBooleanv( GL_LIGHTING, &lighting );
+	if( lighting )
+	{
+		glMaterialfv( GL_FRONT_AND_BACK, GL_EMISSION, e );
+		glMaterialfv( GL_FRONT_AND_BACK, GL_AMBIENT, a );
+		glMaterialfv( GL_FRONT_AND_BACK, GL_DIFFUSE, d );
+		glMaterialfv( GL_FRONT_AND_BACK, GL_SPECULAR, s );
+		glMaterialf( GL_FRONT_AND_BACK, GL_SHININESS, sh );
+	}
+	else
+	{
+		const RageColor color = e + a + d;
+		glColor4f( color.r, color.g, color.b, color.a );
+	}
 }
 void RageDisplay_DDRMini::SetLighting( bool enabled ) { if(enabled)glEnable(GL_LIGHTING);else glDisable(GL_LIGHTING); }
 void RageDisplay_DDRMini::SetLightOff( int index ) { glDisable(GL_LIGHT0+index); }

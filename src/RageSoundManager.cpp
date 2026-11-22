@@ -32,11 +32,7 @@ RageSoundManager::RageSoundManager()
 
 void RageSoundManager::Init()
 {
-#if defined(DDRMINI)
-	driver = RageSoundDriver::Create( "Null" );
-#else
 	driver = RageSoundDriver::Create( g_sSoundDrivers );
-#endif
 
 	if( driver == NULL )
 		RageException::Throw( "Couldn't find a sound driver that works" );

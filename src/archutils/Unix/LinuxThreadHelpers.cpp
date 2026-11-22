@@ -200,6 +200,13 @@ int ResumeThread( uint64_t ThreadID )
 #if defined(CRASH_HANDLER)
 bool GetThreadBacktraceContext( uint64_t ThreadID, BacktraceContext *ctx )
 {
+#if defined(BACKTRACE_METHOD_EXECINFO)
+	/* libc backtrace() can only inspect the calling thread.  The fatal-signal
+	 * report still contains the crashing thread, which is the useful trace. */
+	(void) ThreadID;
+	(void) ctx;
+	return false;
+#else
 	/* Can't GetThreadBacktraceContext the current thread. */
 	ASSERT( ThreadID != GetCurrentThreadId() );
 
@@ -237,6 +244,7 @@ bool GetThreadBacktraceContext( uint64_t ThreadID, BacktraceContext *ctx )
 #endif
 
 	return true;
+#endif
 }
 #endif
 

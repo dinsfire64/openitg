@@ -32,6 +32,17 @@ test "$DEFAULT_CFLAGS" = "yes" && CFLAGS="-Wall -W -Wno-unused -Wno-switch"
 test "$DEFAULT_CXXFLAGS" = "yes" && CXXFLAGS="-Wall -W -Wno-unused -Wno-switch"
 test "$DEFAULT_LDFLAGS" = "yes" && LDFLAGS=""
 
+if test "$ddrmini" = "yes"; then
+	# The legacy crash reporter re-execs the binary to symbolize addresses.
+	# A PIE receives a new ASLR base in that child, making parent addresses
+	# impossible to resolve.  Keep DDR Mini addresses stable instead.
+	# OpenITG's legacy sources were developed on x86 and contain several
+	# signed-char sentinels.  AArch64 defaults plain char to unsigned.
+	CFLAGS="$CFLAGS -fno-pie -fsigned-char"
+	CXXFLAGS="$CXXFLAGS -fno-pie -fsigned-char"
+	LDFLAGS="$LDFLAGS -no-pie"
+fi
+
 compile=release
 AC_ARG_WITH(debug, AC_HELP_STRING([--with-debug], [Enable debug mode]), with_debug=$withval, with_debug=no)
 AC_ARG_WITH(fast-compile, AC_HELP_STRING([--with-fast-compile], [Enable fast compile]), with_fast_compile=$withval, with_fast_compile=no)
@@ -239,11 +250,8 @@ fi
 
 SM_CHECK_CRASH_HANDLER
 
-alsa=no
-if test "$ddrmini" != "yes"; then
-	alsa=yes
-	AM_PATH_ALSA(0.9.0,AC_DEFINE([HAVE_ALSA],1,[Define presence of ALSA]),alsa=no)
-fi
+alsa=yes
+AM_PATH_ALSA(0.9.0,AC_DEFINE([HAVE_ALSA],1,[Define presence of ALSA]),alsa=no)
 
 AM_ICONV
 

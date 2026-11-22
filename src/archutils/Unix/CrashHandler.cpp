@@ -25,6 +25,7 @@
 
 extern uint64_t GetInvalidThreadId();
 extern const char *g_pCrashHandlerArgv0;
+extern char **environ;
 
 static void safe_print(int fd, ...)
 {
@@ -103,9 +104,8 @@ static void NORETURN spawn_child_process( int from_parent )
 
 	/* Use execve; it's the lowest-level of the exec calls.  The others may allocate. */
 	const char *argv[3] = { path, CHILD_MAGIC_PARAMETER, NULL };
-	char *envp[1] = { NULL };
 	/* The const_cast won't matter since our address space gets destroyed in a moment anyway */
-	execve( path, const_cast<char **>(argv), envp );
+	execve( path, const_cast<char **>(argv), environ );
 
 	/* If we got here, the exec failed.  We can't call strerror. */
 	// safe_print(fileno(stderr), "Crash handler execl(", path, ") failed: ", strerror(errno), "\n", NULL);
@@ -304,7 +304,9 @@ static void RunCrashHandler( const CrashData *crash )
 
 	/* Stop other threads.  XXX: This prints a spurious ptrace error if any threads
 	 * are already suspended, which happens in ForceCrashHandlerDeadlock(). */
+#if !defined(DDRMINI)
 	RageThread::HaltAllThreads();
+#endif
 	
 	/* We need to be very careful, since we're under crash conditions.  Let's fork
 	 * a process and exec ourself to get a clean environment to work in. */
@@ -344,7 +346,9 @@ static void RunCrashHandler( const CrashData *crash )
 		 * will trigger the deadlock crash first, and the other will be suspended.  However,
 		 * once we resume it here, it'll continue, and * trigger the deadlock crash again.
 		 * It can result in unrecoverable deadlocks. */
+#if !defined(DDRMINI)
 		RageThread::ResumeAllThreads();
+#endif
 
 		if( WIFSIGNALED(status) )
 			safe_print( fileno(stderr), "Crash handler child exited with signal ", itoa(WTERMSIG(status)), "\n", NULL);

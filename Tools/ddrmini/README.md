@@ -2,8 +2,9 @@
 
 This directory cross-compiles OpenITG for the DDR Mini's AArch64 userspace.
 The target uses the DDR Mini firmware's SDL2 video backend with an OpenGL ES
-1.1 renderer.  Null display remains available as a fallback while sound and
-movie playback still use their null drivers.
+1.1 renderer.  Null display remains available as a fallback.  Ogg Vorbis
+decoding and ALSA sound are enabled, with the null sound driver retained as a
+fallback; movie playback still uses its null driver.
 
 Build from the repository root:
 
@@ -11,10 +12,22 @@ Build from the repository root:
 Tools/ddrmini/docker-build.sh
 ```
 
+Deploy the complete layered game assets to a mounted USB root:
+
+```sh
+Tools/ddrmini/deploy-usb.sh /path/to/usb
+```
+
+The script does not deploy the executable, launcher, or libraries.  It
+preserves `openitg/.openitg`, including preferences, profiles, logs, and other
+writable data.
+
 Set `DDRMINI_BUILD_JOBS=1` on a memory-constrained build host.  The output is
 written to `Build/ddrmini-openitg/openitg`, with the complete ELF version report
 in `Build/ddrmini-openitg/version-info.txt`.  The output directory also contains
-the `DDRmenu` launcher used by the firmware's USB loader.
+the `DDRmenu` launcher used by the firmware's USB loader.  Keep the unstripped
+`openitg.debug` file on the build host for resolving crash addresses; it does
+not need to be deployed.
 
 The container copies the source into temporary storage before building.  It
 does not modify the repository or include it in the Docker image.
@@ -22,12 +35,12 @@ does not modify the repository or include it in the Docker image.
 This binary defaults to:
 
 - 1280x720 fullscreen SDL2/OpenGL ES 1.1, with null fallback
-- null sound
+- ALSA software-mixed sound, with ALSA and null fallbacks
 - null movie playback
-- the inert `MonkeyKeyboard` input handler
+- SDL2 USB keyboard input through OpenITG's normal keyboard mappings
 
-It is only a bring-up artifact.  A production DDR Mini build will replace
-these defaults with the device-specific SDL2/EGL/GLES, audio, and input paths.
+It is still a bring-up artifact.  Movie playback and cabinet-pad input remain
+disabled while the SDL keyboard and device ALSA paths are validated on hardware.
 
 For an on-device bootstrap, copy `DDRmenu` to the USB root and place the binary
 and the normal OpenITG data directories under `USB root/openitg/`.  Logs are
@@ -46,3 +59,10 @@ The launcher tracks `gpio-384` as the power switch, gives OpenITG five seconds
 to shut down cleanly, stops its audio routing/volume monitor, and then returns
 control to the firmware for normal power-off.  While the game runs, the monitor
 keeps speaker/headphone routing and the physical volume knob synchronized.
+
+On ARM64, fatal signals produce timestamped reports in
+`openitg/Logs/crashinfo-*.txt`.  The launcher also directs `TMPDIR`, `TMP`, and
+`TEMP` to `openitg/Logs/tmp`, enables kernel core dumps where permitted, and
+records the firmware's `core_pattern` in `ddrmini-launcher.log`.  Relative core
+patterns place a fallback core in `openitg/`; absolute or piped patterns remain
+under firmware control.

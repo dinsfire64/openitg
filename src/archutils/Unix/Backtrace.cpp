@@ -404,6 +404,29 @@ void GetBacktrace( const void **buf, size_t size, const BacktraceContext *ctx )
 
 	do_backtrace( buf, size, ctx );
 }
+#elif defined(BACKTRACE_METHOD_EXECINFO)
+#include <execinfo.h>
+
+void InitializeBacktrace() { }
+
+void GetSignalBacktraceContext( BacktraceContext *ctx, const ucontext_t *uc )
+{
+	/* execinfo does not accept a ucontext.  backtrace() will still traverse
+	 * through the signal frame and retain the interrupted call chain. */
+	(void) ctx;
+	(void) uc;
+}
+
+void GetBacktrace( const void **buf, size_t size, const BacktraceContext *ctx )
+{
+	(void) ctx;
+	if( size == 0 )
+		return;
+
+	int count = backtrace( const_cast<void **>(buf), size - 1 );
+	buf[count] = NULL;
+}
+
 #elif defined(BACKTRACE_METHOD_POWERPC_DARWIN)
 typedef struct Frame
 {

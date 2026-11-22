@@ -204,9 +204,19 @@ void RageDisplay::SetDefaultRenderStates()
 class MatrixStack
 {
 	vector<RageMatrix> stack;
+	const char *name;
+
+	void EnsureTop()
+	{
+		if( !stack.empty() )
+			return;
+		LOG->Warn( "Recovering empty %s matrix stack", name );
+		stack.resize( 1 );
+		RageMatrixIdentity( &stack.back() );
+	}
 public:
 
-	MatrixStack()
+	MatrixStack( const char *stackName ): name(stackName)
 	{
 		stack.resize(1);
 		LoadIdentity();
@@ -215,13 +225,19 @@ public:
 	// Pops the top of the stack.
 	void Pop()
 	{
+		if( stack.size() <= 1 )
+		{
+			LOG->Warn( "Ignoring underflow of %s matrix stack", name );
+			EnsureTop();
+			return;
+		}
 		stack.pop_back();
-		ASSERT( stack.size() > 0 );	// underflow
 	}
 
 	// Pushes the stack by one, duplicating the current matrix.
 	void Push()
 	{
+		EnsureTop();
 		stack.push_back( stack.back() );
 		ASSERT( stack.size() < 100 );	// overflow
 	}
@@ -229,12 +245,14 @@ public:
 	// Loads identity in the current matrix.
 	void LoadIdentity()
 	{
+		EnsureTop();
 		RageMatrixIdentity( &stack.back() );
 	}
 
 	// Loads the given matrix into the current matrix
 	void LoadMatrix( const RageMatrix& m )
 	{
+		EnsureTop();
 		stack.back() = m;
 	}
 
@@ -242,6 +260,7 @@ public:
 	// (transformation is about the current world origin)
 	void MultMatrix( const RageMatrix& m )
 	{
+		EnsureTop();
 		RageMatrixMultiply( &stack.back(), &m, &stack.back() );
 	}
 
@@ -249,6 +268,7 @@ public:
 	// (transformation is about the local origin of the object)
 	void MultMatrixLocal( const RageMatrix& m )
 	{
+		EnsureTop();
 		RageMatrixMultiply( &stack.back(), &stack.back(), &m );
 	}
 
@@ -340,14 +360,14 @@ public:
 	}
 
 	// Obtain the current matrix at the top of the stack
-	const RageMatrix* GetTop() { return &stack.back(); }
+	const RageMatrix* GetTop() { EnsureTop(); return &stack.back(); }
 };
 
 
-MatrixStack	g_ProjectionStack;
-MatrixStack	g_ViewStack;
-MatrixStack	g_WorldStack;
-MatrixStack	g_TextureStack;
+MatrixStack	g_ProjectionStack("projection");
+MatrixStack	g_ViewStack("view");
+MatrixStack	g_WorldStack("world");
+MatrixStack	g_TextureStack("texture");
 
 const RageMatrix* RageDisplay::GetProjectionTop()
 {

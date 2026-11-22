@@ -12,7 +12,9 @@ RageInput::RageInput()
 
 	/* Init optional devices. */
 #if defined(DDRMINI)
-	InputHandler::Create( "MonkeyKeyboard", m_pDevices );
+	/* Do not let a desktop InputDrivers preference disable the only usable
+	 * keyboard backend on this target. */
+	InputHandler::Create( "DDRMiniSDL", m_pDevices );
 #else
 	InputHandler::Create( g_sInputDrivers, m_pDevices );
 #endif
