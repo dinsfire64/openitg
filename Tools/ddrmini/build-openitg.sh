@@ -25,7 +25,7 @@ export CXX=aarch64-linux-gnu-g++
 export AR=aarch64-linux-gnu-ar
 export RANLIB=aarch64-linux-gnu-ranlib
 export STRIP=aarch64-linux-gnu-strip
-export PKG_CONFIG_LIBDIR=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+export PKG_CONFIG_LIBDIR=/opt/ddrmini-ffmpeg/lib/pkgconfig:/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
 
 ./autogen.sh
 
@@ -44,7 +44,6 @@ cp "$config_aux_dir/config.guess" autoconf/config.guess
   --host=aarch64-linux-gnu \
   --enable-ddrmini \
   --disable-gtk2 \
-  --without-ffmpeg \
   --without-mp3 \
   --without-sse2
 
@@ -65,6 +64,13 @@ mkdir -p "$output_dir/lib"
 # Older bootstrap builds bundled these, but the firmware's GLES stack requires
 # its own newer C++ runtime.  Remove stale copies from a reused output folder.
 rm -f "$output_dir/lib/libstdc++.so.6" "$output_dir/lib/libgcc_s.so.1"
+# FFmpeg is linked statically.  Remove libraries left by an older shared build
+# so they cannot accidentally be deployed or loaded on the appliance.
+rm -f "$output_dir/lib/libavcodec.so."* \
+      "$output_dir/lib/libavformat.so."* \
+      "$output_dir/lib/libavutil.so."* \
+      "$output_dir/lib/libswscale.so."* \
+      "$output_dir/lib/libswresample.so."*
 copy_runtime_library()
 {
   library_pattern=$1
@@ -103,4 +109,4 @@ done
 file "$output_dir/openitg"
 aarch64-linux-gnu-readelf -d "$output_dir/openitg"
 aarch64-linux-gnu-readelf --version-info "$output_dir/openitg" > "$output_dir/version-info.txt"
-echo "DDR Mini null-driver bootstrap written to $output_dir/openitg"
+echo "DDR Mini OpenITG build written to $output_dir/openitg"

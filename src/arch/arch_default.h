@@ -6,7 +6,7 @@
 	#include "ArchHooks/ArchHooks_Unix.h"
 	#include "USB/USBDriver_Impl_Libusb.h"
 	#define DEFAULT_INPUT_DRIVER_LIST "DDRMiniSDL"
-	#define DEFAULT_MOVIE_DRIVER_LIST "Null"
+	#define DEFAULT_MOVIE_DRIVER_LIST "FFMpeg,Null"
 	#define DEFAULT_SOUND_DRIVER_LIST "ALSA-sw,ALSA,Null"
 
 #elif defined(WINDOWS)

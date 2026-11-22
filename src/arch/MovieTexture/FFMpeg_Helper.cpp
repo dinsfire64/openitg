@@ -109,6 +109,10 @@ FFMpeg_Helper::~FFMpeg_Helper()
 		avcodec::av_packet_unref( &pkt );
 		current_packet_offset = -1;
 	}
+	if( frame != NULL )
+		avcodec::av_frame_free( &frame );
+	if( m_swsctx != NULL )
+		avcodec::sws_freeContext( m_swsctx );
 }
 
 void FFMpeg_Helper::Init()
@@ -191,10 +195,16 @@ CString FFMpeg_Helper::Open(CString what)
 		return ssprintf( "AVCodec (%s): Couldn't find any video streams", what.c_str() );
 	}
 
-	m_cctx = stream->codec;
+	m_cctx = avcodec::avcodec_alloc_context3( codec );
 	if ( m_cctx == NULL )
 	{
-		return ssprintf( "AVCodec (%s): Couldn't find codec", what.c_str() );
+		return ssprintf( "AVCodec (%s): Couldn't allocate codec context", what.c_str() );
+	}
+
+	ret = avcodec::avcodec_parameters_to_context( m_cctx, stream->codecpar );
+	if ( ret < 0 )
+	{
+		return ssprintf( averr_ssprintf(ret, "AVCodec (%s): Couldn't copy codec parameters", what.c_str()) );
 	}
 
 	m_width  = m_cctx->width;
@@ -231,8 +241,7 @@ void FFMpeg_Helper::Close()
 {
 	if( m_cctx )
 	{
-		avcodec::avcodec_close( m_cctx );
-		m_cctx = NULL;
+		avcodec::avcodec_free_context( &m_cctx );
 	}
 	if( m_fctx )
 	{
@@ -245,13 +254,7 @@ void FFMpeg_Helper::Close()
 	}
 	if ( m_ioctx )
 	{
-		if ( m_ioctx->buffer )
-		{
-			avcodec::av_free( m_ioctx->buffer );
-			m_ioctx->buffer = NULL;
-		}
-		//avcodec::av_free( m_ioctx );
-		m_ioctx = NULL;
+		avcodec::avio_context_free( &m_ioctx );
 	}
 	if ( m_pFile )
 	{
@@ -267,7 +270,7 @@ void FFMpeg_Helper::RegisterProtocols()
 		return;
 	Done = true;
 
-	avcodec::av_register_all();
+	/* Current FFmpeg registers its formats and codecs automatically. */
 }
 
 int FFMpeg_Helper::GetRawFrameNumber()
@@ -285,6 +288,8 @@ int FFMpeg_Helper::GetFrame()
 			break;
 		if( ret == -1 )
 			return -1;
+		if( ret == 2 )
+			continue;
 		if( ret == 0 && eof > 0 )
 			return 0; /* eof */
 
@@ -392,53 +397,14 @@ void FFMpeg_Helper::RenderFrame(RageSurface *img, int tex_fmt)
  * and 1 if we have a frame (we may have more data in the packet). */
 int FFMpeg_Helper::DecodePacket()
 {
-	if( eof == 0 && current_packet_offset == -1 )
-		return 0; /* no packet */
-
-	while( eof == 1 || (eof == 0 && current_packet_offset < pkt.size) )
+	int ret = avcodec::avcodec_receive_frame( m_cctx, frame );
+	if( ret == 0 )
 	{
-		if ( GetNextTimestamp )
+		int64_t timestamp = frame->best_effort_timestamp;
+		if ( timestamp != int64_t(AV_NOPTS_VALUE) )
 		{
-			if (pkt.dts != int64_t(AV_NOPTS_VALUE))
-				pts = (float)pkt.dts * m_stream->time_base.num / m_stream->time_base.den;
-			else
-				pts = -1;
-			GetNextTimestamp = false;
-		}
-
-		/* If we have no data on the first frame, just return EOF; passing an empty packet
-		 * to avcodec_decode_video in this case is crashing it.  However, passing an empty
-		 * packet is normal with B-frames, to flush.  This may be unnecessary in newer
-		 * versions of avcodec, but I'm waiting until a new stable release to upgrade. */
-		if( pkt.size == 0 && FrameNumber == -1 )
-			return 0; /* eof */
-
-		int got_frame;
-		int len = avcodec::avcodec_decode_video2(
-				m_cctx, 
-				frame, &got_frame, &pkt);
-		//CHECKPOINT;
-
-		if (len < 0)
-		{
-			LOG->Warn("avcodec_decode_video: %i", len);
-			return -1; // XXX
-		}
-
-		current_packet_offset += len;
-
-		if (!got_frame)
-		{
-			if( eof == 1 )
-				eof = 2;
-			continue;
-		}
-
-		GetNextTimestamp = true;
-
-		if (pts != -1)
-		{
-			CurrentTimestamp = pts;
+			CurrentTimestamp = (float)timestamp * m_stream->time_base.num /
+				m_stream->time_base.den;
 		}
 		else
 		{
@@ -448,11 +414,51 @@ int FFMpeg_Helper::DecodePacket()
 		}
 
 		/* Length of this frame: */
-		LastFrameDelay = (float)m_stream->codec->time_base.num / m_stream->codec->time_base.den;
+		avcodec::AVRational rate = avcodec::av_guess_frame_rate( m_fctx, m_stream, frame );
+		if( rate.num > 0 && rate.den > 0 )
+			LastFrameDelay = (float)rate.den / rate.num;
+		else if( m_cctx->time_base.num > 0 && m_cctx->time_base.den > 0 )
+			LastFrameDelay = (float)m_cctx->time_base.num / m_cctx->time_base.den;
+		else
+			LastFrameDelay = 1.0f / 30.0f;
 		LastFrameDelay += frame->repeat_pict * (LastFrameDelay * 0.5f);
 
 		return 1;
 	}
 
-	return 0; /* packet done */
+	if( ret != AVERROR(EAGAIN) && ret != AVERROR_EOF )
+	{
+		LOG->Warn("avcodec_receive_frame: %i", ret);
+		return -1;
+	}
+
+	if( current_packet_offset != -1 )
+	{
+		ret = avcodec::avcodec_send_packet( m_cctx, &pkt );
+		if( ret != AVERROR(EAGAIN) )
+		{
+			avcodec::av_packet_unref( &pkt );
+			current_packet_offset = -1;
+		}
+		if( ret < 0 && ret != AVERROR(EAGAIN) )
+		{
+			LOG->Warn("avcodec_send_packet: %i", ret);
+			return -1;
+		}
+		return 2; /* packet accepted; try receiving again before reading */
+	}
+
+	if( eof == 1 )
+	{
+		ret = avcodec::avcodec_send_packet( m_cctx, NULL );
+		eof = 2;
+		if( ret < 0 && ret != AVERROR_EOF )
+		{
+			LOG->Warn("avcodec_send_packet (flush): %i", ret);
+			return -1;
+		}
+		return 2;
+	}
+
+	return 0;
 }

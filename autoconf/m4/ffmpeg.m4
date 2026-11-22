@@ -24,7 +24,8 @@ if test "$with_ffmpeg" = "yes"; then
 
         FFMPEG_CFLAGS="$AVUTIL_CFLAGS $AVCODEC_CFLAGS $AVFORMAT_CFLAGS $SWSCALE_CFLAGS"
 		FFMPEG_CXXFLAGS="$AVUTIL_CFLAGS $AVCODEC_CFLAGS $AVFORMAT_CFLAGS $SWSCALE_CFLAGS"
-		FFMPEG_LIBS="$AVUTIL_LIBS $AVCODEC_LIBS $AVFORMAT_LIBS $SWSCALE_LIBS"
+        dnl Static libraries must be ordered from users to providers.
+        FFMPEG_LIBS="$AVFORMAT_LIBS $AVCODEC_LIBS $SWSCALE_LIBS $AVUTIL_LIBS"
 
         CFLAGS="$FFMPEG_CFLAGS $CFLAGS"
 		CXXFLAGS="$FFMPEG_CXXFLAGS $CXXFLAGS"
@@ -37,49 +38,49 @@ if test "$with_ffmpeg" = "yes"; then
 
         if test "$have_libavcodec" = "yes"; then
         AC_MSG_CHECKING([for libavcodec >= 2.0])
-        AC_TRY_RUN([
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([
             #include <libavcodec/avcodec.h>
-            int main()
-            {
-                return ( LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,18,102) )? 1:0;
-            }
-            ],,have_libavcodec=no,)
+            #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,18,102)
+            #error libavcodec is too old
+            #endif
+            int main(void) { return 0; }
+            ])],[],[have_libavcodec=no])
         AC_MSG_RESULT($have_libavcodec)
         fi
 
         if test "$have_libavformat" = "yes"; then
         AC_MSG_CHECKING([for libavformat >= 2.0])
-        AC_TRY_RUN([
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([
             #include <libavformat/avformat.h>
-            int main()
-            {
-                return ( LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(55,12,100) )? 1:0;
-            }
-            ],,have_libavformat=no,)
+            #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(55,12,100)
+            #error libavformat is too old
+            #endif
+            int main(void) { return 0; }
+            ])],[],[have_libavformat=no])
         AC_MSG_RESULT($have_libavformat)
         fi
 
         if test "$have_libswscale" = "yes"; then
         AC_MSG_CHECKING([for libswscale >= 2.0])
-        AC_TRY_RUN([
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([
             #include <libswscale/swscale.h>
-            int main()
-            {
-                return ( LIBSWSCALE_VERSION_INT < AV_VERSION_INT(2,3,100) )? 1:0;
-            }
-            ],,have_libswscale=no,)
+            #if LIBSWSCALE_VERSION_INT < AV_VERSION_INT(2,3,100)
+            #error libswscale is too old
+            #endif
+            int main(void) { return 0; }
+            ])],[],[have_libswscale=no])
         AC_MSG_RESULT($have_libswscale)
         fi
 
         if test "$have_libavutil" = "yes"; then
         AC_MSG_CHECKING([for libavutil >= 2.0])
-        AC_TRY_RUN([
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE([
             #include <libavutil/avutil.h>
-            int main()
-            {
-                return ( LIBAVUTIL_VERSION_INT < AV_VERSION_INT(52,38,100) )? 1:0;
-            }
-            ],,have_libavutil=no,)
+            #if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(52,38,100)
+            #error libavutil is too old
+            #endif
+            int main(void) { return 0; }
+            ])],[],[have_libavutil=no])
         AC_MSG_RESULT($have_libavutil)
         fi
 

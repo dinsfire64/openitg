@@ -9,6 +9,8 @@ RUN dpkg --add-architecture arm64 \
       'deb http://archive.debian.org/debian bullseye main' \
       'deb http://archive.debian.org/debian bullseye-updates main' \
       'deb http://archive.debian.org/debian-security bullseye-security main' \
+      'deb-src http://archive.debian.org/debian bullseye main' \
+      'deb-src http://archive.debian.org/debian-security bullseye-security main' \
       > /etc/apt/sources.list \
  && printf '%s\n' \
       'Acquire::Check-Valid-Until "false";' \
@@ -40,7 +42,34 @@ RUN dpkg --add-architecture arm64 \
       make \
       pkg-config \
       zlib1g-dev:arm64 \
- && rm -rf /var/lib/apt/lists/*
+ && cd /tmp \
+ && apt-get source ffmpeg \
+ && cd ffmpeg-* \
+ && ./configure \
+      --prefix=/opt/ddrmini-ffmpeg \
+      --arch=aarch64 \
+      --target-os=linux \
+      --cross-prefix=aarch64-linux-gnu- \
+      --enable-cross-compile \
+      --disable-shared \
+      --enable-static \
+      --disable-programs \
+      --disable-doc \
+      --disable-debug \
+      --disable-network \
+      --disable-autodetect \
+      --disable-everything \
+      --enable-avcodec \
+      --enable-avformat \
+      --enable-avutil \
+      --enable-swscale \
+      --enable-decoder=mpeg1video,mpeg2video,mjpeg \
+      --enable-demuxer=mpegps,mpegvideo,mjpeg,avi \
+      --enable-parser=mpegvideo,mjpeg \
+ && make -j2 \
+ && make install \
+ && cd / \
+ && rm -rf /tmp/ffmpeg-* /var/lib/apt/lists/*
 
 COPY build-openitg.sh /usr/local/bin/build-openitg-ddrmini
 
