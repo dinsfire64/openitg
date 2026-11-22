@@ -36,7 +36,8 @@ This binary defaults to:
 
 - 1280x720 fullscreen SDL2/OpenGL ES 1.1, with null fallback
 - ALSA software-mixed sound, with ALSA and null fallbacks
-- statically linked FFmpeg playback for MPEG-1, MPEG-2 and MJPEG backgrounds
+- statically linked FFmpeg playback for MPEG-1, MPEG-2, MPEG-4 Part 2/Xvid
+  and MJPEG backgrounds
 - SDL2 USB keyboard input plus SDL2/evdev HID pad input
 
 The newer DDR Mini port uses separate SDL keyboard, Linux event and Linux

@@ -51,6 +51,49 @@ bool GetGLFormat( RageDisplay::RagePixelFormat pf, GLFormat &out )
 }
 
 map<GLuint, RageDisplay::RagePixelFormat> g_TextureFormats;
+bool g_SphereEnvironmentMapping = false;
+
+void GenerateSphereMapTexcoords( const RageVector3 *positions,
+	const RageVector3 *normals, int count, vector<RageVector2> &texcoords )
+{
+	GLfloat modelView[16];
+	glGetFloatv( GL_MODELVIEW_MATRIX, modelView );
+	texcoords.resize( count );
+
+	for( int i = 0; i < count; ++i )
+	{
+		/* Transform into eye space.  Models which use sphere maps in OpenITG
+		 * use uniform scaling, so the model-view 3x3 is also sufficient for
+		 * transforming and then normalizing their normals. */
+		RageVector3 p(
+			modelView[0]*positions[i].x + modelView[4]*positions[i].y + modelView[8]*positions[i].z + modelView[12],
+			modelView[1]*positions[i].x + modelView[5]*positions[i].y + modelView[9]*positions[i].z + modelView[13],
+			modelView[2]*positions[i].x + modelView[6]*positions[i].y + modelView[10]*positions[i].z + modelView[14] );
+		RageVector3 n(
+			modelView[0]*normals[i].x + modelView[4]*normals[i].y + modelView[8]*normals[i].z,
+			modelView[1]*normals[i].x + modelView[5]*normals[i].y + modelView[9]*normals[i].z,
+			modelView[2]*normals[i].x + modelView[6]*normals[i].y + modelView[10]*normals[i].z );
+
+		const float nLength = sqrtf( n.x*n.x + n.y*n.y + n.z*n.z );
+		const float pLength = sqrtf( p.x*p.x + p.y*p.y + p.z*p.z );
+		if( nLength <= 0.000001f || pLength <= 0.000001f )
+		{
+			texcoords[i] = RageVector2( 0.5f, 0.5f );
+			continue;
+		}
+		n.x /= nLength; n.y /= nLength; n.z /= nLength;
+		p.x /= pLength; p.y /= pLength; p.z /= pLength;
+
+		/* Match desktop OpenGL's GL_SPHERE_MAP generation. */
+		const float dot = p.x*n.x + p.y*n.y + p.z*n.z;
+		const RageVector3 r( p.x - 2*dot*n.x, p.y - 2*dot*n.y, p.z - 2*dot*n.z );
+		const float m = 2 * sqrtf( r.x*r.x + r.y*r.y + (r.z+1)*(r.z+1) );
+		if( m <= 0.000001f )
+			texcoords[i] = RageVector2( 0.5f, 0.5f );
+		else
+			texcoords[i] = RageVector2( r.x/m + 0.5f, r.y/m + 0.5f );
+	}
+}
 
 RageSurface *ConvertUploadSurface( RageSurface *source, RageDisplay::RagePixelFormat pf )
 {
@@ -133,9 +176,15 @@ public:
 		const MeshInfo &info = m_vMeshInfo[mesh];
 		glVertexPointer( 3, GL_FLOAT, 0, &m_Positions[0] );
 		glNormalPointer( GL_FLOAT, 0, &m_Normals[0] );
-		glTexCoordPointer( 2, GL_FLOAT, 0, &m_Texcoords[0] );
+		if( g_SphereEnvironmentMapping )
+		{
+			GenerateSphereMapTexcoords( &m_Positions[0], &m_Normals[0],
+				m_Positions.size(), m_SphereTexcoords );
+			glTexCoordPointer( 2, GL_FLOAT, 0, &m_SphereTexcoords[0] );
+		}
+		else
+			glTexCoordPointer( 2, GL_FLOAT, 0, &m_Texcoords[0] );
 		glDisableClientState( GL_COLOR_ARRAY );
-		glColor4f( 1, 1, 1, 1 );
 		glDrawElements( GL_TRIANGLES, info.iTriangleCount*3, GL_UNSIGNED_SHORT,
 			&m_Triangles[info.iTriangleStart] );
 		glEnableClientState( GL_COLOR_ARRAY );
@@ -145,6 +194,7 @@ private:
 	vector<RageVector3> m_Positions;
 	vector<RageVector3> m_Normals;
 	vector<RageVector2> m_Texcoords;
+	mutable vector<RageVector2> m_SphereTexcoords;
 	vector<msTriangle> m_Triangles;
 };
 }
@@ -425,18 +475,41 @@ void RageDisplay_DDRMini::SetMaterial( const RageColor &e,const RageColor &a,con
 	}
 	else
 	{
+		/* Approximate the three lighting terms in RGB, but do not add their
+		 * alpha channels.  They have each already been multiplied by the
+		 * Actor's diffuse alpha; adding them would turn (for example) the
+		 * theme's 0.12 opacity into 0.36 for every model pass. */
 		const RageColor color = e + a + d;
-		glColor4f( color.r, color.g, color.b, color.a );
+		glColor4f( color.r, color.g, color.b, d.a );
 	}
 }
 void RageDisplay_DDRMini::SetLighting( bool enabled ) { if(enabled)glEnable(GL_LIGHTING);else glDisable(GL_LIGHTING); }
 void RageDisplay_DDRMini::SetLightOff( int index ) { glDisable(GL_LIGHT0+index); }
 void RageDisplay_DDRMini::SetLightDirectional( int index,const RageColor &a,const RageColor &d,const RageColor &s,const RageVector3 &dir )
 {
-	GLfloat position[4]={dir.x,dir.y,dir.z,0}; glEnable(GL_LIGHT0+index); glLightfv(GL_LIGHT0+index,GL_AMBIENT,a);
-	glLightfv(GL_LIGHT0+index,GL_DIFFUSE,d); glLightfv(GL_LIGHT0+index,GL_SPECULAR,s); glLightfv(GL_LIGHT0+index,GL_POSITION,position);
+	/* OpenGL transforms a light's position by the current model-view matrix
+	 * when glLightfv is called.  This direction is in world space, so do not
+	 * let the transform left behind by the current actor rotate it. */
+	glMatrixMode( GL_MODELVIEW );
+	glPushMatrix();
+	glLoadIdentity();
+
+	glEnable( GL_LIGHT0+index );
+	glLightfv( GL_LIGHT0+index, GL_AMBIENT, a );
+	glLightfv( GL_LIGHT0+index, GL_DIFFUSE, d );
+	glLightfv( GL_LIGHT0+index, GL_SPECULAR, s );
+	GLfloat position[4] = { dir.x, dir.y, dir.z, 0 };
+	glLightfv( GL_LIGHT0+index, GL_POSITION, position );
+
+	glPopMatrix();
 }
-void RageDisplay_DDRMini::SetSphereEnvironmentMapping( bool enabled ) { }
+void RageDisplay_DDRMini::SetSphereEnvironmentMapping( bool enabled )
+{
+	/* GLES 1.1 omits desktop OpenGL's sphere-map texture coordinate
+	 * generation.  Compiled model geometry generates equivalent coordinates
+	 * on the CPU when this flag is active. */
+	g_SphereEnvironmentMapping = enabled;
+}
 void RageDisplay_DDRMini::SetLineWidth( float width ) { glLineWidth(width); }
 
 RageSurface *RageDisplay_DDRMini::CreateScreenshot()

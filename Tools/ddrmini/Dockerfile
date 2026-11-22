@@ -63,11 +63,13 @@ RUN dpkg --add-architecture arm64 \
       --enable-avformat \
       --enable-avutil \
       --enable-swscale \
-      --enable-decoder=mpeg1video,mpeg2video,mjpeg \
+      --enable-decoder=mpeg1video,mpeg2video,mjpeg,mpeg4 \
       --enable-demuxer=mpegps,mpegvideo,mjpeg,avi \
-      --enable-parser=mpegvideo,mjpeg \
+      --enable-parser=mpegvideo,mjpeg,mpeg4video \
  && make -j2 \
  && make install \
+ && aarch64-linux-gnu-nm -g --defined-only /opt/ddrmini-ffmpeg/lib/libavcodec.a \
+      | grep -q ' ff_mpeg4_decoder$' \
  && cd / \
  && rm -rf /tmp/ffmpeg-* /var/lib/apt/lists/*
 
