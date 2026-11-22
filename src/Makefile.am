@@ -246,6 +246,10 @@ Lights = arch/Lights/LightsDriver.cpp arch/Lights/LightsDriver.h \
 		arch/Lights/LightsDriver_EXTIO.cpp arch/Lights/LightsDriver_EXTIO.h \
 		arch/Lights/LightsDriver_Satellite.cpp arch/Lights/LightsDriver_Satellite.h
 
+if DDRMINI
+Lights += arch/Lights/LightsDriver_DDRMini.cpp arch/Lights/LightsDriver_DDRMini.h
+endif
+
 MemoryCard = arch/MemoryCard/MemoryCardDriver.cpp arch/MemoryCard/MemoryCardDriver.h
 LowLevelWindow =
 if !DDRMINI

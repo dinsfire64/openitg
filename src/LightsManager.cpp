@@ -88,7 +88,11 @@ LightsManager::LightsManager()
 
 	m_LightsMode = LIGHTSMODE_JOINING;
 
+#if defined(DDRMINI)
+	LightsDriver::Create( "DDRMini", m_vpDrivers );
+#else
 	LightsDriver::Create( g_sLightsDrivers, m_vpDrivers );
+#endif
 
 	m_fTestAutoCycleCurrentIndex = 0;
 	m_clTestManualCycleCurrent = LIGHT_INVALID;

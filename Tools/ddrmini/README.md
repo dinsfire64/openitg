@@ -42,6 +42,11 @@ This binary defaults to:
 It is still a bring-up artifact.  Movie playback and cabinet-pad input remain
 disabled while the SDL keyboard and device ALSA paths are validated on hardware.
 
+The DDR Mini lights driver controls the twelve cabinet sysfs LEDs and sends
+five-byte reports to each `33dd:0014` pad's correlated hidraw output.  It falls
+back to `/dev/input/hidraw_p1` and `hidraw_p2` when topology discovery finds no
+pads, avoids redundant writes, and turns all outputs off during clean shutdown.
+
 For an on-device bootstrap, copy `DDRmenu` to the USB root and place the binary
 and the normal OpenITG data directories under `USB root/openitg/`.  Logs are
 written to `USB root/openitg/Logs/`.  Copy the generated `lib/` directory next
