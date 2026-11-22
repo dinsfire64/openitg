@@ -25,6 +25,13 @@ const float BUTTON_COLUMN_X[NUM_SHOWN_GAME_TO_DEVICE_SLOTS*MAX_GAME_CONTROLLERS]
 	50, 125, 200, 440, 515, 590 
 };
 
+//ddrmini had specific F keys assigned to the gpio which cannot be changed.
+#ifdef DDRMINI
+    #define ALLOW_FUNCTION_KEYS 1
+#else
+    #define ALLOW_FUNCTION_KEYS 0
+#endif
+
 
 REGISTER_SCREEN_CLASS( ScreenMapControllers );
 ScreenMapControllers::ScreenMapControllers( CString sClassName ) : ScreenWithMenuElements( sClassName )
@@ -205,8 +212,8 @@ void ScreenMapControllers::Input( const DeviceInput& DeviceI, const InputEventTy
 	//
 	if( m_iWaitingForPress )
 	{
-		/* Don't allow function keys to be mapped. */
-		if ( false )
+		/* Don't allow function keys to be mapped. but allow if DDRMINI  */
+		if (!ALLOW_FUNCTION_KEYS && (DeviceI.device == DEVICE_KEYBOARD && (DeviceI.button >= KEY_F1 && DeviceI.button <= KEY_F12) ) )
 		{
 			m_textError.SetText( "That key can not be mapped." );
 			SCREENMAN->PlayInvalidSound();
