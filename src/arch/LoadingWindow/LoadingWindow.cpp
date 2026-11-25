@@ -16,7 +16,11 @@ LoadingWindow *LoadingWindow::Create()
 	if( !g_bShowLoadingWindow )
 		return new LoadingWindow_Null;
 
+#if defined(DDRMINI)
+	const CString drivers = "ddrmini";
+#else
 	const CString drivers = "xbox,win32,cocoa,gtk,sdl";
+#endif
 	vector<CString> DriversToTry;
 	split( drivers, ",", DriversToTry, true );
 

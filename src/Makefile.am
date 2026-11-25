@@ -144,6 +144,11 @@ StepMania = StdString.h \
 LoadingWindow = arch/LoadingWindow/LoadingWindow.cpp arch/LoadingWindow/LoadingWindow.h \
 		arch/LoadingWindow/LoadingWindow_Null.h
 
+if DDRMINI
+LoadingWindow += arch/LoadingWindow/LoadingWindow_DDRMini.cpp \
+	arch/LoadingWindow/LoadingWindow_DDRMini.h
+endif
+
 USBDriver = arch/USB/USBDriver_Impl.cpp arch/USB/USBDriver_Impl.h
 
 # if HAVE_LIBUSB

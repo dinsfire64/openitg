@@ -4,6 +4,7 @@
 /* Define the default driver sets. */
 #if defined(DDRMINI)
 	#include "ArchHooks/ArchHooks_Unix.h"
+	#include "LoadingWindow/LoadingWindow_DDRMini.h"
 	#include "USB/USBDriver_Impl_Libusb.h"
 	/* SDL handles the keyboard and the evdev-backed HID pads.  This is the
 	 * equivalent of the newer port's DDRMiniSDL plus LinuxEvent combination. */

@@ -40,24 +40,32 @@ RageSurface *RageSurface_Load_XPM( char * const *xpm, CString &error )
 		/* "id c #AABBCC"; id is color_length long.  id may contain spaces. */
 		CString color = xpm[line++];
 
-		if( color_length+4 > (int) color.size() )
+		if( color_length+3 > (int) color.size() )
 			continue;
 
 		CString name;
 		name = color.substr( 0, color_length );
 
-		if( color.substr( color_length, 4 ) != " c #")
+		if( color.substr( color_length, 3 ) != " c ")
 			continue;
 
-		CString clr = color.substr( color_length+4 );
-		int r, g, b;
-		if( sscanf( clr, "%2x%2x%2x", &r, &g, &b ) != 3 )
-			continue;
 		RageSurfaceColor colorval;
-		colorval.r = (uint8_t) r;
-		colorval.g = (uint8_t) g;
-		colorval.b = (uint8_t) b;
-		colorval.a = 0xFF;
+		CString clr = color.substr( color_length+3 );
+		if( clr.CompareNoCase("None") == 0 )
+		{
+			colorval.r = colorval.g = colorval.b = colorval.a = 0;
+		}
+		else
+		{
+			int r, g, b;
+			if( clr.empty() || clr[0] != '#' ||
+				sscanf( clr.c_str()+1, "%2x%2x%2x", &r, &g, &b ) != 3 )
+				continue;
+			colorval.r = (uint8_t) r;
+			colorval.g = (uint8_t) g;
+			colorval.b = (uint8_t) b;
+			colorval.a = 0xFF;
+		}
 
 		colors.push_back( colorval );
 
@@ -71,7 +79,7 @@ RageSurface *RageSurface_Load_XPM( char * const *xpm, CString &error )
 		memcpy( img->fmt.palette->colors, &colors[0], colors.size()*sizeof(RageSurfaceColor) );
 	} else {
 		img = CreateSurface( width, height, 32,
-			0xFF000000, 0x00FF0000, 0x0000FF00, 0 );
+			0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF );
 	}
 
 	for( int y = 0; y < height; ++y )
@@ -105,7 +113,8 @@ RageSurface *RageSurface_Load_XPM( char * const *xpm, CString &error )
 				p[x] = (int8_t) it->second;
 			} else {
 				const RageSurfaceColor &color = colors[it->second];
-				p32[x] = (color.r << 24) + (color.g << 16) + (color.b << 8);
+				p32[x] = (color.r << 24) + (color.g << 16) +
+					(color.b << 8) + color.a;
 			}
 		}
 	}
