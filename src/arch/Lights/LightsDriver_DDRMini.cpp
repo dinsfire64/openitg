@@ -255,8 +255,15 @@ void LightsDriver_DDRMini::Set( const LightsState *ls )
 {
 	if( ls == NULL )
 		return;
-	const uint8_t p1Start = Brightness(ls->m_bGameButtonLights[GAME_CONTROLLER_1][GAME_BUTTON_START]);
-	const uint8_t p2Start = Brightness(ls->m_bGameButtonLights[GAME_CONTROLLER_2][GAME_BUTTON_START]);
+	/* Gameplay drives these as game-button lights, while ScreenTestLights
+	 * drives the cabinet ButtonsLeft/ButtonsRight channels.  They represent
+	 * the same physical lamps on the DDR Mini. */
+	const uint8_t p1Start = Brightness(
+		ls->m_bGameButtonLights[GAME_CONTROLLER_1][GAME_BUTTON_START] ||
+		ls->m_bCabinetLights[LIGHT_BUTTONS_LEFT] );
+	const uint8_t p2Start = Brightness(
+		ls->m_bGameButtonLights[GAME_CONTROLLER_2][GAME_BUTTON_START] ||
+		ls->m_bCabinetLights[LIGHT_BUTTONS_RIGHT] );
 	const uint8_t speaker = Brightness(ls->m_bCabinetLights[LIGHT_BASS_LEFT] ||
 		ls->m_bCabinetLights[LIGHT_BASS_RIGHT]);
 
